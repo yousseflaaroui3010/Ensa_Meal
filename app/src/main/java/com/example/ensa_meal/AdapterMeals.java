@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -30,25 +31,26 @@ import java.util.ArrayList;
 public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
     private final ArrayList<Plat> plats;
     private final Context context;
-    private final OnItemLongClickListener longClickListener;
+    private final OnItemClickListener clickListener;
 
     /**
-     * Interface for handling long-click events
+     * Interface for handling click events
      */
-    public interface OnItemLongClickListener {
-        void onItemLongClick(int position);
+    public interface OnItemClickListener {
+        void onItemClick(int position);
+        void onAddToFavoritesClick(int position);
     }
 
     /**
      * Constructor
-     * @param plats List of meal categories
+     * @param plats List of meals
      * @param context Activity context
-     * @param longClickListener Listener for long-click events
+     * @param clickListener Listener for click events
      */
-    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemLongClickListener longClickListener) {
+    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemClickListener clickListener) {
         this.plats = plats;
         this.context = context;
-        this.longClickListener = longClickListener;
+        this.clickListener = clickListener;
     }
 
     @NonNull
@@ -69,29 +71,25 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
      holder.tName.setText(p.getName());
      Glide.with(context).load(p.getImageURL()).into(holder.image);
 
-   // Click listener - Open detail screen
-   holder.itemView.setOnClickListener(new View.OnClickListener() {
-       @Override
-       public void onClick(View view) {
-           Intent intent=new Intent(context,Instructions.class);
-           Bundle bundle=new Bundle();
-           bundle.putSerializable("MEAL",p);
-           intent.putExtras(bundle);
-           context.startActivity(intent);
-       }
-   });
+        // Click listener - Open detail screen
+        holder.itemView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (clickListener != null) {
+                    clickListener.onItemClick(holder.getAdapterPosition());
+                }
+            }
+        });
 
-   // Long-click listener - Edit meal
-   holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-       @Override
-       public boolean onLongClick(View v) {
-           if (longClickListener != null) {
-               longClickListener.onItemLongClick(holder.getAdapterPosition());
-           }
-           return true;
-       }
-   });
-
+        // Add to favorites button listener
+        holder.btnAddToFavorites.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (clickListener != null) {
+                    clickListener.onAddToFavoritesClick(holder.getAdapterPosition());
+                }
+            }
+        });
     }
 
     @Override
@@ -102,12 +100,13 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
     public class Holder extends RecyclerView.ViewHolder {
         ImageView image;
         TextView tId,tName;
+        ImageButton btnAddToFavorites;
         public Holder(@NonNull View itemView) {
             super(itemView);
             image=itemView.findViewById(R.id.imageView);
             tId=itemView.findViewById(R.id.modelId);
             tName=itemView.findViewById(R.id.modelName);
-
+            btnAddToFavorites = itemView.findViewById(R.id.btnAddToFavorites);
         }
     }
 }

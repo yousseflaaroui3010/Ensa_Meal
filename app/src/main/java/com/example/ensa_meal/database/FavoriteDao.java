@@ -47,6 +47,12 @@ public interface FavoriteDao {
     void updateComment(String mealId, String comment);
 
     /**
+     * UPDATE - Update rating on favorite
+     */
+    @Query("UPDATE favorites SET user_rating = :rating WHERE meal_id = :mealId")
+    void updateRating(String mealId, float rating);
+
+    /**
      * UPDATE - Alternative using entity
      */
     @Update

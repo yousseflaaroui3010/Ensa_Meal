@@ -11,6 +11,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -110,10 +111,10 @@ public class Instructions extends AppCompatActivity {
         // Update favorite icon based on current state
         MenuItem favoriteItem = menu.findItem(R.id.action_add_favorite);
         if (isFavorite) {
-            favoriteItem.setIcon(android.R.drawable.btn_star_big_on);
+            favoriteItem.setIcon(android.R.drawable.star_on);
             favoriteItem.setTitle("Remove from Favorites");
         } else {
-            favoriteItem.setIcon(android.R.drawable.btn_star_big_off);
+            favoriteItem.setIcon(android.R.drawable.star_off);
             favoriteItem.setTitle("Add to Favorites");
         }
 
@@ -145,13 +146,15 @@ public class Instructions extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Add to Favorites");
 
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_comment, null);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favorite, null);
         EditText editComment = dialogView.findViewById(R.id.editComment);
+        RatingBar editRating = dialogView.findViewById(R.id.editRating);
 
         builder.setView(dialogView);
 
         builder.setPositiveButton("Add", (dialog, which) -> {
             String comment = editComment.getText().toString().trim();
+            float rating = editRating.getRating();
 
             // Create favorite entity
             FavoriteEntity favorite = new FavoriteEntity(
@@ -159,7 +162,8 @@ public class Instructions extends AppCompatActivity {
                     currentPlat.getName(),
                     currentPlat.getImageURL(),
                     currentPlat.getInstructions(),
-                    comment.isEmpty() ? null : comment
+                    comment.isEmpty() ? null : comment,
+                    rating
             );
 
             // Add to favorites database

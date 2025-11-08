@@ -9,6 +9,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.RatingBar;
 import android.widget.SearchView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -111,37 +112,42 @@ public class FavoritesActivity extends AppCompatActivity implements FavoritesAda
     }
 
     /**
-     * UPDATE - Edit comment on favorite
+     * UPDATE - Edit comment and rating on favorite
      */
     @Override
-    public void onEditComment(int position) {
+    public void onEditFavorite(int position) {
         FavoriteEntity favorite = favoritesList.get(position);
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Edit Comment");
+        builder.setTitle("Edit Favorite");
 
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_comment, null);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favorite, null);
         EditText editComment = dialogView.findViewById(R.id.editComment);
+        RatingBar editRating = dialogView.findViewById(R.id.editRating);
 
-        // Pre-fill with existing comment
+        // Pre-fill with existing comment and rating
         if (favorite.getUserComment() != null && !favorite.getUserComment().isEmpty()) {
             editComment.setText(favorite.getUserComment());
         }
+        editRating.setRating(favorite.getUserRating());
 
         builder.setView(dialogView);
 
         builder.setPositiveButton("Save", (dialog, which) -> {
             String comment = editComment.getText().toString().trim();
+            float rating = editRating.getRating();
 
-            // Update comment in database
+            // Update comment and rating in database
             favoriteDao.updateComment(favorite.getMealId(), comment);
+            favoriteDao.updateRating(favorite.getMealId(), rating);
 
             // Update local object
             favorite.setUserComment(comment);
+            favorite.setUserRating(rating);
             favoritesAdapter.notifyItemChanged(position);
 
-            Toast.makeText(this, "Comment updated", Toast.LENGTH_SHORT).show();
-            Log.d(TAG, "Updated comment for: " + favorite.getMealName());
+            Toast.makeText(this, "Favorite updated", Toast.LENGTH_SHORT).show();
+            Log.d(TAG, "Updated favorite: " + favorite.getMealName());
         });
 
         builder.setNegativeButton("Cancel", null);

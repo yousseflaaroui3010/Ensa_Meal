@@ -12,19 +12,9 @@
     <item
         android:id="@+id/action_favorites"
         android:title="My Favorites"
-        android:icon="@android:drawable/btn_star_big_on"
+        android:icon="@android:drawable/star_on"
         app:showAsAction="ifRoom" />
 
-    <item
-        android:id="@+id/action_refresh"
-        android:title="Refresh from API"
-        android:icon="@android:drawable/ic_menu_rotate"
-        app:showAsAction="never" />
 
-    <item
-        android:id="@+id/action_clear_all"
-        android:title="Clear All Meals"
-        android:icon="@android:drawable/ic_menu_delete"
-        app:showAsAction="never" />
 
 </menu>

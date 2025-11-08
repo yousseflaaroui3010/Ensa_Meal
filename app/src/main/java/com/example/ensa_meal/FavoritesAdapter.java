@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -33,7 +34,7 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
      * Interface for favorite actions
      */
     public interface OnFavoriteActionListener {
-        void onEditComment(int position);
+        void onEditFavorite(int position);
         void onViewDetails(int position);
     }
 
@@ -68,6 +69,8 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
             holder.comment.setAlpha(0.5f); // Make it look like placeholder
         }
 
+        holder.ratingBar.setRating(favorite.getUserRating());
+
         // Set timestamp
         String timeAgo = getTimeAgo(favorite.getAddedTimestamp());
         holder.timestamp.setText(timeAgo);
@@ -86,10 +89,10 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
             }
         });
 
-        // Edit comment button
-        holder.btnEditComment.setOnClickListener(v -> {
+        // Edit favorite button
+        holder.btnEditFavorite.setOnClickListener(v -> {
             if (listener != null) {
-                listener.onEditComment(holder.getAdapterPosition());
+                listener.onEditFavorite(holder.getAdapterPosition());
             }
         });
     }
@@ -125,7 +128,8 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
     static class FavoriteViewHolder extends RecyclerView.ViewHolder {
         ImageView mealImage;
         TextView mealName, comment, timestamp;
-        ImageButton btnEditComment;
+        ImageButton btnEditFavorite;
+        RatingBar ratingBar;
 
         public FavoriteViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -133,7 +137,8 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
             mealName = itemView.findViewById(R.id.favoriteMealName);
             comment = itemView.findViewById(R.id.favoriteComment);
             timestamp = itemView.findViewById(R.id.favoriteTimestamp);
-            btnEditComment = itemView.findViewById(R.id.btnEditComment);
+            btnEditFavorite = itemView.findViewById(R.id.btnEditFavorite);
+            ratingBar = itemView.findViewById(R.id.favoriteRating);
         }
     }
 }

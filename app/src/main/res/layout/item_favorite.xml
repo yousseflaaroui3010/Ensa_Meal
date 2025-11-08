@@ -37,6 +37,19 @@
             app:layout_constraintStart_toEndOf="@id/favoriteMealImage"
             app:layout_constraintTop_toTopOf="@id/favoriteMealImage" />
 
+        <RatingBar
+            android:id="@+id/favoriteRating"
+            style="?android:attr/ratingBarStyleSmall"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:numStars="5"
+            android:stepSize="0.5"
+            android:isIndicator="true"
+            app:layout_constraintStart_toEndOf="@id/favoriteMealImage"
+            app:layout_constraintTop_toBottomOf="@id/favoriteMealName" />
+
         <TextView
             android:id="@+id/favoriteComment"
             android:layout_width="0dp"
@@ -51,7 +64,7 @@
             android:ellipsize="end"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toEndOf="@id/favoriteMealImage"
-            app:layout_constraintTop_toBottomOf="@id/favoriteMealName" />
+            app:layout_constraintTop_toBottomOf="@id/favoriteRating" />
 
         <TextView
             android:id="@+id/favoriteTimestamp"
@@ -67,12 +80,12 @@
             app:layout_constraintBottom_toBottomOf="@id/favoriteMealImage" />
 
         <ImageButton
-            android:id="@+id/btnEditComment"
+            android:id="@+id/btnEditFavorite"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:src="@android:drawable/ic_menu_edit"
-            android:contentDescription="Edit comment"
+            android:contentDescription="Edit favorite"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 

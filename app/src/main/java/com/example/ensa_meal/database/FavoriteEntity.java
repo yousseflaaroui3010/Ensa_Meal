@@ -33,16 +33,20 @@ public class FavoriteEntity {
     @ColumnInfo(name = "user_comment")
     private String userComment; // User's personal comment/note
 
+    @ColumnInfo(name = "user_rating")
+    private float userRating; // User's rating for the meal
+
     @ColumnInfo(name = "added_timestamp")
     private long addedTimestamp;
 
     public FavoriteEntity(@NonNull String mealId, String mealName, String mealImageUrl,
-                          String mealDescription, String userComment) {
+                          String mealDescription, String userComment, float userRating) {
         this.mealId = mealId;
         this.mealName = mealName;
         this.mealImageUrl = mealImageUrl;
         this.mealDescription = mealDescription;
         this.userComment = userComment;
+        this.userRating = userRating;
         this.addedTimestamp = System.currentTimeMillis();
     }
 
@@ -86,6 +90,14 @@ public class FavoriteEntity {
 
     public void setUserComment(String userComment) {
         this.userComment = userComment;
+    }
+
+    public float getUserRating() {
+        return userRating;
+    }
+
+    public void setUserRating(float userRating) {
+        this.userRating = userRating;
     }
 
     public long getAddedTimestamp() {
