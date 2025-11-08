@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#262424"
+    tools:context=".Instructions">
+
+    <ImageView
+        android:id="@+id/imageInst"
+        android:layout_width="326dp"
+        android:layout_height="164dp"
+        android:layout_marginStart="50dp"
+        android:layout_marginTop="52dp"
+        android:layout_marginEnd="50dp"
+        android:layout_marginBottom="20dp"
+        app:layout_constraintBottom_toTopOf="@+id/IdInst"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:srcCompat="@drawable/ic_launcher_foreground" />
+
+    <TextView
+        android:id="@+id/IdInst"
+        android:layout_width="93dp"
+        android:layout_height="31dp"
+        android:layout_marginBottom="29dp"
+        android:background="#E7E3EF"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/NameInstr"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/imageInst" />
+
+    <TextView
+        android:id="@+id/NameInstr"
+        android:layout_width="110dp"
+        android:layout_height="24dp"
+        android:layout_marginBottom="29dp"
+        android:background="#EEDCF0"
+        android:text="TextView"
+        app:layout_constraintBottom_toTopOf="@+id/Instr_Inst"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/IdInst" />
+
+    <TextView
+        android:id="@+id/Instr_Inst"
+        android:layout_width="322dp"
+        android:layout_height="371dp"
+        android:layout_marginStart="49dp"
+        android:layout_marginEnd="49dp"
+        android:layout_marginBottom="30dp"
+        android:background="#DDD7E7"
+        android:text="TextView"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/NameInstr" />
+</androidx.constraintlayout.widget.ConstraintLayout>
