@@ -36,6 +36,7 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
     public interface OnFavoriteActionListener {
         void onEditFavorite(int position);
         void onViewDetails(int position);
+        void onDeleteFavorite(int position);
     }
 
     public FavoritesAdapter(ArrayList<FavoriteEntity> favorites, Context context,
@@ -95,6 +96,13 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
                 listener.onEditFavorite(holder.getAdapterPosition());
             }
         });
+
+        // Delete favorite button
+        holder.btnDeleteFavorite.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onDeleteFavorite(holder.getAdapterPosition());
+            }
+        });
     }
 
     @Override
@@ -128,7 +136,7 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
     static class FavoriteViewHolder extends RecyclerView.ViewHolder {
         ImageView mealImage;
         TextView mealName, comment, timestamp;
-        ImageButton btnEditFavorite;
+        ImageButton btnEditFavorite, btnDeleteFavorite;
         RatingBar ratingBar;
 
         public FavoriteViewHolder(@NonNull View itemView) {
@@ -138,6 +146,7 @@ public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.Favo
             comment = itemView.findViewById(R.id.favoriteComment);
             timestamp = itemView.findViewById(R.id.favoriteTimestamp);
             btnEditFavorite = itemView.findViewById(R.id.btnEditFavorite);
+            btnDeleteFavorite = itemView.findViewById(R.id.btnDeleteFavorite);
             ratingBar = itemView.findViewById(R.id.favoriteRating);
         }
     }

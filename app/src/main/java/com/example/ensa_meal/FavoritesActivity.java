@@ -173,6 +173,19 @@ public class FavoritesActivity extends AppCompatActivity implements FavoritesAda
     }
 
     /**
+     * DELETE - Show confirmation dialog for deletion
+     */
+    @Override
+    public void onDeleteFavorite(int position) {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Favorite")
+                .setMessage("Are you sure you want to remove this from your favorites?")
+                .setPositiveButton("Yes", (dialog, which) -> deleteFavorite(position))
+                .setNegativeButton("No", null)
+                .show();
+    }
+
+    /**
      * Setup swipe to delete
      */
     private void setupSwipeToDelete() {

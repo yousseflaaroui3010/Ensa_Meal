@@ -30,7 +30,7 @@
             android:layout_marginEnd="16dp"
             android:text="Meal Name"
             android:textAppearance="@style/TextAppearance.AppCompat.Large"
-            app:layout_constraintEnd_toStartOf="@+id/btnAddToFavorites"
+            app:layout_constraintEnd_toStartOf="@+id/favorite_icon"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/imageView" />
 
@@ -46,14 +46,13 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/modelName" />
 
-        <ImageButton
-            android:id="@+id/btnAddToFavorites"
+        <ImageView
+            android:id="@+id/favorite_icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="16dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Add to favorites"
-            android:src="@android:drawable/star_off"
+            android:contentDescription="Favorite indicator"
+            android:src="@android:drawable/btn_star_big_off"
             app:layout_constraintBottom_toBottomOf="@+id/modelName"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="@+id/modelName" />

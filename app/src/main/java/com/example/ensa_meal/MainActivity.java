@@ -28,6 +28,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements AdapterMeals.OnItemClickListener {
 
@@ -42,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
     private FavoriteDao favoriteDao;
     private SearchView searchView;
     private Button favoritesButton;
+    private Set<String> favoriteMealIds; // To store IDs of favorite meals
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +63,9 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
 
         // Setup Listeners
         setupListeners();
+
+        // Load initial favorite IDs
+        loadFavoriteMealIds();
 
         // Initial search (e.g., for "chicken")
         searchMeals("chicken");
@@ -80,7 +86,8 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
      */
     private void setupRecyclerView() {
         arrayList = new ArrayList<>();
-        adapterMeals = new AdapterMeals(arrayList, this, this);
+        favoriteMealIds = new HashSet<>(); // Initialize here, will be populated by loadFavoriteMealIds
+        adapterMeals = new AdapterMeals(arrayList, this, this, favoriteMealIds);
         recyclerView.setAdapter(adapterMeals);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         recyclerView.setHasFixedSize(true); // Performance optimization
@@ -108,6 +115,17 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
                 return false;
             }
         });
+    }
+
+    /**
+     * Load favorite meal IDs from the database
+     */
+    private void loadFavoriteMealIds() {
+        favoriteMealIds.clear();
+        favoriteMealIds.addAll(favoriteDao.getFavoriteMealIds());
+        if (adapterMeals != null) {
+            adapterMeals.setFavoriteMealIds(favoriteMealIds);
+        }
     }
 
     /**
@@ -201,18 +219,30 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
     }
 
     @Override
-    public void onAddToFavoritesClick(int position) {
+    public void onToggleFavoriteClick(int position) {
         Plat plat = arrayList.get(position);
-        FavoriteEntity favorite = new FavoriteEntity(
-                plat.getId(),
-                plat.getName(),
-                plat.getImageURL(),
-                plat.getInstructions(),
-                "",
-                0
-        );
-        favoriteDao.addToFavorites(favorite);
-        Toast.makeText(this, plat.getName() + " added to favorites", Toast.LENGTH_SHORT).show();
+        String mealId = plat.getId();
+
+        if (favoriteDao.isFavorite(mealId)) {
+            // Meal is already a favorite, remove it
+            favoriteDao.removeFromFavoritesById(mealId);
+            favoriteMealIds.remove(mealId);
+            Toast.makeText(this, plat.getName() + " removed from favorites", Toast.LENGTH_SHORT).show();
+        } else {
+            // Meal is not a favorite, add it
+            FavoriteEntity favorite = new FavoriteEntity(
+                    mealId,
+                    plat.getName(),
+                    plat.getImageURL(),
+                    plat.getInstructions(),
+                    "", // Default comment
+                    0   // Default rating
+            );
+            favoriteDao.addToFavorites(favorite);
+            favoriteMealIds.add(mealId);
+            Toast.makeText(this, plat.getName() + " added to favorites", Toast.LENGTH_SHORT).show();
+        }
+        adapterMeals.setFavoriteMealIds(favoriteMealIds); // Update adapter with new favorite status
     }
 
     /**
@@ -243,6 +273,13 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
             progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
             recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // Reload favorite IDs and update adapter when returning to this activity
+        loadFavoriteMealIds();
     }
 
     @Override

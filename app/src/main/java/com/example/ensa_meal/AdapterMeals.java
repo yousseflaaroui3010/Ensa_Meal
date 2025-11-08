@@ -16,6 +16,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * AdapterMeals - RecyclerView Adapter for displaying meal categories
@@ -25,20 +27,19 @@ import java.util.ArrayList;
  * - Handle click events to navigate to Instructions activity
  * - Handle long-click events to edit meals
  * - Load images using Glide library
- *
- * ViewHolder Pattern: Caches view references for performance
  */
 public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
     private final ArrayList<Plat> plats;
     private final Context context;
     private final OnItemClickListener clickListener;
+    private Set<String> favoriteMealIds;
 
     /**
      * Interface for handling click events
      */
     public interface OnItemClickListener {
         void onItemClick(int position);
-        void onAddToFavoritesClick(int position);
+        void onToggleFavoriteClick(int position);
     }
 
     /**
@@ -46,11 +47,13 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
      * @param plats List of meals
      * @param context Activity context
      * @param clickListener Listener for click events
+     * @param favoriteMealIds Set of favorite meal IDs
      */
-    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemClickListener clickListener) {
+    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemClickListener clickListener, Set<String> favoriteMealIds) {
         this.plats = plats;
         this.context = context;
         this.clickListener = clickListener;
+        this.favoriteMealIds = favoriteMealIds;
     }
 
     @NonNull
@@ -71,6 +74,13 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
      holder.tName.setText(p.getName());
      Glide.with(context).load(p.getImageURL()).into(holder.image);
 
+        // Set favorite icon state
+        if (favoriteMealIds.contains(p.getId())) {
+            holder.favoriteIcon.setImageResource(android.R.drawable.btn_star_big_on);
+        } else {
+            holder.favoriteIcon.setImageResource(android.R.drawable.btn_star_big_off);
+        }
+
         // Click listener - Open detail screen
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -81,12 +91,12 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
             }
         });
 
-        // Add to favorites button listener
-        holder.btnAddToFavorites.setOnClickListener(new View.OnClickListener() {
+        // Toggle favorite button listener
+        holder.favoriteIcon.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (clickListener != null) {
-                    clickListener.onAddToFavoritesClick(holder.getAdapterPosition());
+                    clickListener.onToggleFavoriteClick(holder.getAdapterPosition());
                 }
             }
         });
@@ -97,16 +107,25 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
         return plats.size();
     }
 
+    /**
+     * Update the set of favorite meal IDs and refresh the adapter.
+     * @param favoriteMealIds The new set of favorite meal IDs.
+     */
+    public void setFavoriteMealIds(Set<String> favoriteMealIds) {
+        this.favoriteMealIds = favoriteMealIds;
+        notifyDataSetChanged();
+    }
+
     public class Holder extends RecyclerView.ViewHolder {
         ImageView image;
         TextView tId,tName;
-        ImageButton btnAddToFavorites;
+        ImageView favoriteIcon; // Changed from ImageButton to ImageView
         public Holder(@NonNull View itemView) {
             super(itemView);
             image=itemView.findViewById(R.id.imageView);
             tId=itemView.findViewById(R.id.modelId);
             tName=itemView.findViewById(R.id.modelName);
-            btnAddToFavorites = itemView.findViewById(R.id.btnAddToFavorites);
+            favoriteIcon = itemView.findViewById(R.id.favorite_icon); // Changed ID
         }
     }
 }

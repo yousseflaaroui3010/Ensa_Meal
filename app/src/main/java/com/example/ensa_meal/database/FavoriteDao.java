@@ -29,6 +29,12 @@ public interface FavoriteDao {
     List<FavoriteEntity> getAllFavorites();
 
     /**
+     * READ - Get all favorite meal IDs
+     */
+    @Query("SELECT meal_id FROM favorites")
+    List<String> getFavoriteMealIds();
+
+    /**
      * READ - Check if meal is in favorites
      */
     @Query("SELECT EXISTS(SELECT 1 FROM favorites WHERE meal_id = :mealId)")
