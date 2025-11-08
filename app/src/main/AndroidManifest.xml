@@ -15,6 +15,10 @@
         android:theme="@style/Theme.Ensa_Meal"
         tools:targetApi="31">
         <activity
+            android:name=".FavoritesActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity" />
+        <activity
             android:name=".Instructions"
             android:exported="false" />
         <activity

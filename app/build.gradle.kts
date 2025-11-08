@@ -42,7 +42,14 @@ dependencies {
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
 
-    implementation ("com.github.bumptech.glide:glide:5.0.5")
+    // Glide for image loading
+    implementation("com.github.bumptech.glide:glide:5.0.5")
 
+    // Room Database for local CRUD operations
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
 
+    // Lifecycle components for ViewModel
+    implementation("androidx.lifecycle:lifecycle-viewmodel:2.8.7")
+    implementation("androidx.lifecycle:lifecycle-livedata:2.8.7")
 }

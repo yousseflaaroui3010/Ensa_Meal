@@ -16,13 +16,39 @@ import com.bumptech.glide.Glide;
 
 import java.util.ArrayList;
 
+/**
+ * AdapterMeals - RecyclerView Adapter for displaying meal categories
+ *
+ * Responsibilities:
+ * - Bind meal data to ViewHolder
+ * - Handle click events to navigate to Instructions activity
+ * - Handle long-click events to edit meals
+ * - Load images using Glide library
+ *
+ * ViewHolder Pattern: Caches view references for performance
+ */
 public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
-    ArrayList<Plat> plats;
-    Context context;
+    private final ArrayList<Plat> plats;
+    private final Context context;
+    private final OnItemLongClickListener longClickListener;
 
-    public AdapterMeals(ArrayList<Plat> plats, Context context) {
+    /**
+     * Interface for handling long-click events
+     */
+    public interface OnItemLongClickListener {
+        void onItemLongClick(int position);
+    }
+
+    /**
+     * Constructor
+     * @param plats List of meal categories
+     * @param context Activity context
+     * @param longClickListener Listener for long-click events
+     */
+    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemLongClickListener longClickListener) {
         this.plats = plats;
         this.context = context;
+        this.longClickListener = longClickListener;
     }
 
     @NonNull
@@ -43,6 +69,7 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
      holder.tName.setText(p.getName());
      Glide.with(context).load(p.getImageURL()).into(holder.image);
 
+   // Click listener - Open detail screen
    holder.itemView.setOnClickListener(new View.OnClickListener() {
        @Override
        public void onClick(View view) {
@@ -51,6 +78,17 @@ public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
            bundle.putSerializable("MEAL",p);
            intent.putExtras(bundle);
            context.startActivity(intent);
+       }
+   });
+
+   // Long-click listener - Edit meal
+   holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
+       @Override
+       public boolean onLongClick(View v) {
+           if (longClickListener != null) {
+               longClickListener.onItemLongClick(holder.getAdapterPosition());
+           }
+           return true;
        }
    });
 
