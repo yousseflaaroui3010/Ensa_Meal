@@ -1,1053 +1,3739 @@
-# Ensa Meal - Complete Project Guide
+# Building Ensa Meal: A Complete From-Scratch Guide
 
-## Table of Contents
-1. Project Overview
-2. Technologies and Architecture
-3. Database Structure
-4. API Integration
-5. User Interface and Navigation
-6. Core Features
-7. AI Integration
-8. Design Choices
+Welcome, Youssef. I'm Davinci, and I'll be your guide on this journey.
 
----
+Over my 35 years building software systems, I've learned that true understanding comes not from memorizing code, but from grasping the **why** behind every decision. By the time you complete this guide, you won't just have built an Android app—you'll understand it so deeply that you could rebuild it with your eyes closed and defend every architectural choice to your professors.
 
-## 1. Project Overview
+Ensa Meal is deceptively simple on the surface: three screens that let users browse meals, save favorites, and chat with an AI about what to cook. But beneath that simplicity lies a sophisticated architecture that demonstrates professional Android development practices. You'll work with REST APIs, local databases, real-time AI integration, and modern Android patterns—all while learning the principles that separate hobbyist code from production-grade software.
 
-### What is Ensa Meal?
-Ensa Meal is an Android application that helps users discover, save, and learn about different meals and recipes. Users can search for meals, view detailed instructions, save favorites with personal notes and ratings, and ask an AI assistant about cooking questions.
+This guide assumes you're intelligent but new to Android. I'll explain everything, from why we structure folders a certain way to why specific code patterns exist. Think of this as learning not just to cook a recipe, but understanding the chemistry of cooking itself.
 
-### Main Features
-- Search meals from TheMealDB API
-- View detailed meal instructions and images
-- Add meals to favorites with ratings and comments
-- Manage favorites (view, edit, delete)
-- Ask AI questions about cooking and recipes
-- Time tracking for when favorites were added
+Let's begin.
 
 ---
 
-## 2. Technologies and Architecture
+## Part 1: Understanding What We're Building
 
-### Programming Language
-**Java** - The entire app is written in Java, which is Android's primary programming language.
+Before touching any code, let's establish a mental model of Ensa Meal.
 
-### Architecture Pattern
-The app follows a **layered architecture** with three main layers:
+### The Three Screens
 
-1. **UI Layer (Activities)** - What users see and interact with
-2. **Data Layer (Database)** - Where data is stored locally
-3. **Network Layer (API)** - How we get data from the internet
+**Screen 1: Meal Browser (MainActivity)**
+- Displays a scrollable grid of meals from the internet
+- Users can search for specific dishes
+- Each meal card is clickable to see full details
+- Think of this as the "storefront window"—visually appealing, easy to browse
+
+**Screen 2: Favorites (FavoritesActivity)**
+- Shows only meals the user has saved
+- Users can add personal notes and ratings
+- Swipe-to-delete functionality
+- This is the "personal cookbook"—curated and customizable
+
+**Screen 3: AI Chat (AIChatActivity)**
+- A conversational interface powered by AI
+- The AI can see your favorite meals
+- Ask "What should I cook?" and it suggests from YOUR favorites, not random meals
+- Supports multiple languages, including Moroccan Darija
+- This is your "smart cooking assistant"
+
+### The Data Flow
+
+Here's how information moves through your app:
 
 ```
-┌─────────────────────┐
-│   UI Activities     │ ← Users interact here
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│   Database (Room)   │ ← Data stored here
-└──────────┬──────────┘
-           │
-┌──────────▼──────────┐
-│   Network (API)     │ ← Data fetched here
-└─────────────────────┘
+TheMealDB API → Your App → User sees meals
+                    ↓
+              User saves favorite
+                    ↓
+              Room Database (local storage on device)
+                    ↓
+              AI reads favorites from database
+                    ↓
+              AI suggests meals via Groq API
 ```
 
-### Key Libraries
+Understanding this flow is crucial. Data enters from the internet, gets stored locally, and is read by multiple parts of your app. This is a **three-tier architecture**: presentation (what users see), business logic (how the app works), and data (where information lives).
 
-**Room Database**
-- Why: Provides easy database management for Android
-- How: Converts Java objects to SQLite database tables automatically
-- File: `app/src/main/java/com/example/ensa_meal/database/AppDatabase.java`
+### Why This Architecture Matters
 
-**Volley**
-- Why: Handles network requests to TheMealDB API
-- How: Sends HTTP requests and receives JSON responses
-- File: `app/src/main/java/com/example/ensa_meal/MainActivity.java:134`
+When professors ask about your design choices, here's your answer:
 
-**Glide**
-- Why: Loads and caches images efficiently
-- How: Downloads images from URLs and displays them in ImageViews
-- Files: Used in all adapter classes
+"I separated concerns into three layers. The UI layer handles display and user interaction. The data layer manages persistence and network calls. The business logic connects them. This separation means I can change how data is stored without touching the UI, or redesign the UI without touching data access—a principle called **loose coupling** that makes code maintainable."
 
-**OkHttp**
-- Why: Makes API calls to Groq AI service
-- How: Sends HTTP requests with JSON payloads
-- File: `app/src/main/java/com/example/ensa_meal/AIChatActivity.java`
+Now that you understand the big picture, let's build it.
 
 ---
 
-## 3. Database Structure
+## Part 2: Setting Up Your Development Environment
 
-### Database Technology: Room
-Room is Google's recommended database library for Android. It sits on top of SQLite (Android's built-in database) and makes it easier to work with.
+### Installing Android Studio
 
-### Database Configuration
-**File**: `app/src/main/java/com/example/ensa_meal/database/AppDatabase.java`
+1. Download Android Studio from developer.android.com
+2. During installation, select these components:
+   - Android SDK (the tools to build Android apps)
+   - Android SDK Platform (specific Android version tools)
+   - Android Virtual Device (emulator to test your app)
 
-The database is created as a **Singleton**, meaning only one instance exists throughout the app. This prevents multiple database connections and saves memory.
+**Why Android Studio?** It's the official IDE from Google, meaning it has the best integration with Android tools. Think of it as a chef's kitchen—everything you need is in one place.
+
+### Creating the Project
+
+1. Open Android Studio
+2. Select "New Project"
+3. Choose "Empty Views Activity"
+
+**Why "Empty Views Activity"?** This template gives you a basic app structure without cluttering it with example code. You start with a blank canvas.
+
+4. Configure your project:
+   - **Name**: Ensa_Meal (with underscore, not hyphen—Android naming convention)
+   - **Package name**: com.example.ensa_meal (reverse domain notation, a Java convention)
+   - **Save location**: Choose a location you'll remember
+   - **Language**: Java (stable, widely documented, and what this guide uses)
+   - **Minimum SDK**: API 24 (covers 95% of active Android devices)
+
+5. Click "Finish"
+
+Android Studio will now create your project structure. This takes 1-2 minutes as it downloads necessary files.
+
+### Understanding the Project Structure
+
+When the process completes, you'll see this folder structure:
+
+```
+Ensa_Meal/
+├── app/
+│   ├── src/
+│   │   └── main/
+│   │       ├── java/com/example/ensa_meal/
+│   │       │   └── MainActivity.java
+│   │       ├── res/
+│   │       │   └── layout/
+│   │       │       └── activity_main.xml
+│   │       └── AndroidManifest.xml
+│   └── build.gradle.kts
+├── gradle/
+└── settings.gradle.kts
+```
+
+**Let me explain each piece:**
+
+**app/**: This is your application module. Everything specific to your app lives here.
+
+**src/main/java/**: Your Java code goes here. Think of this as the "brain" folder.
+
+**MainActivity.java**: The entry point of your app. When users tap your app icon, this code runs first.
+
+**res/**: Resources—everything that's not code. Images, layouts, text strings, colors.
+
+**layout/**: XML files that define how screens look. Think of XML as a blueprint, and Java as the construction crew that brings it to life.
+
+**AndroidManifest.xml**: The master configuration file. It tells Android: "Here's what my app can do, what permissions it needs, and what screens exist."
+
+**build.gradle.kts**: Your build configuration. This is where you list dependencies (libraries your app uses) and configure build settings. The `.kts` extension means it uses Kotlin DSL, but you're still writing a Java app—this file is just configuration.
+
+### The Gradle Build System
+
+Gradle is your build automation tool. Think of it like a recipe that tells the computer: "Here's how to transform my source code into an installable app."
+
+When you add a dependency (like a library for loading images), you add it to `app/build.gradle.kts`, and Gradle downloads it and includes it in your app. This is better than manually downloading JAR files and managing them yourself.
+
+---
+
+## Part 3: Building Screen 1 - The Meal Browser
+
+### Step 3.1: Adding Dependencies
+
+Open `app/build.gradle.kts` and find the `dependencies` block. Add these lines:
+
+```kotlin
+dependencies {
+    // Existing dependencies will already be here
+    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("com.google.android.material:material:1.9.0")
+
+    // Add these new ones:
+    implementation("com.android.volley:volley:1.2.1")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+    implementation("androidx.room:room-runtime:2.6.1")
+    annotationProcessor("androidx.room:room-compiler:2.6.1")
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
+}
+```
+
+**Why each dependency?**
+
+**Volley**: A networking library from Google. When you want to fetch meal data from the internet, Volley handles the HTTP request/response cycle. Without it, you'd write hundreds of lines of networking code yourself.
+
+**Glide**: An image loading library. When you have a URL like "https://example.com/meal.jpg", Glide downloads it, caches it, and displays it in your app. Without Glide, you'd handle threading, caching, and memory management manually—complex and error-prone.
+
+**Room**: Google's database library. It provides a clean API over SQLite (Android's built-in database). When users save favorite meals, Room stores them locally on the device.
+
+**OkHttp**: An advanced HTTP client. We'll use this for the AI chat because it gives us more control than Volley (like custom headers for authentication).
+
+After adding these, click "Sync Now" at the top of the file. Gradle will download these libraries.
+
+### Step 3.2: Adding Internet Permission
+
+Open `app/src/main/AndroidManifest.xml` and add this line inside the `<manifest>` tag (not inside `<application>`):
+
+```xml
+<uses-permission android:name="android.permission.INTERNET" />
+```
+
+**Why?** Android is security-conscious. Apps must explicitly declare permissions they need. Without this line, your app can't access the internet—network calls would silently fail.
+
+**Security note**: This permission is granted automatically at install time (it's not "dangerous" in Android's classification), so users won't see a popup. They see it in the app's permission list in Settings.
+
+### Step 3.3: Creating the Plat Model Class
+
+In Android, a **model** is a class that represents data. Your meal data comes from the API as JSON. You need a Java class to hold that data.
+
+Right-click `com.example.ensa_meal` folder → New → Java Class → Name it `Plat`
+
+**Why "Plat"?** It's French for "dish" or "meal". Naming is arbitrary, but being consistent matters.
+
+Write this code in `app/src/main/java/com/example/ensa_meal/Plat.java`:
 
 ```java
-private static AppDatabase instance;
+package com.example.ensa_meal;
 
-public static synchronized AppDatabase getInstance(Context context) {
-    if (instance == null) {
-        instance = Room.databaseBuilder(...)
-            .allowMainThreadQueries()
-            .fallbackToDestructiveMigration()
-            .build();
+public class Plat {
+    private String id;
+    private String nom;
+    private String photo;
+    private String description;
+
+    public Plat(String id, String nom, String photo, String description) {
+        this.id = id;
+        this.nom = nom;
+        this.photo = photo;
+        this.description = description;
     }
-    return instance;
+
+    // Getters
+    public String getId() { return id; }
+    public String getNom() { return nom; }
+    public String getPhoto() { return photo; }
+    public String getDescription() { return description; }
+
+    // Setters
+    public void setId(String id) { this.id = id; }
+    public void setNom(String nom) { this.nom = nom; }
+    public void setPhoto(String photo) { this.photo = photo; }
+    public void setDescription(String description) { this.description = description; }
 }
 ```
 
-**Key Settings:**
-- `allowMainThreadQueries()` - Lets us access database on main thread (normally not recommended for production)
-- `fallbackToDestructiveMigration()` - Recreates database if version changes
+**Understanding this code:**
 
-### Table 1: MealEntity
-**File**: `app/src/main/java/com/example/ensa_meal/database/MealEntity.java`
-**Table Name**: `meal_categories`
-**Purpose**: Stores meal information from API
+**private fields**: The data is private—other classes can't directly access it. This is **encapsulation**, a core principle in object-oriented programming.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| id | String | Unique meal ID (Primary Key) |
-| name | String | Meal name |
-| imageURL | String | URL to meal image |
-| description | String | Meal instructions |
-| timestamp | long | When meal was added |
+**Constructor**: The method that runs when you create a new `Plat` object: `new Plat("123", "Pizza", "url", "Delicious")`.
 
-### Table 2: FavoriteEntity
-**File**: `app/src/main/java/com/example/ensa_meal/database/FavoriteEntity.java`
-**Table Name**: `favorites`
-**Purpose**: Stores user's favorite meals with personal data
+**Getters/Setters**: Public methods to read and modify the private fields. This gives you control—you could add validation in a setter, like checking if a URL is valid before setting it.
 
-| Column | Type | Description |
-|--------|------|-------------|
-| mealId | String | Meal ID (Primary Key) |
-| mealName | String | Meal name |
-| mealImageUrl | String | URL to meal image |
-| mealDescription | String | Meal instructions |
-| userComment | String | User's personal comment |
-| userRating | float | User's rating (0-5 stars) |
-| addedTimestamp | long | When added to favorites |
+**Why this structure?** When professors ask "Why not just make the fields public?", here's your answer: "Encapsulation allows me to change internal implementation without breaking code that uses this class. If I later decide IDs must be integers instead of Strings, I only change this class—not every place that uses it."
 
-### Data Access Objects (DAOs)
-DAOs are interfaces that define how to interact with the database.
+### Step 3.4: Designing the Main Layout
 
-**FavoriteDao** (`app/src/main/java/com/example/ensa_meal/database/FavoriteDao.java`)
-- `addToFavorites()` - Adds a meal to favorites
-- `getAllFavorites()` - Gets all favorite meals
-- `removeFromFavoritesById()` - Deletes a favorite
-- `isFavorite()` - Checks if meal is favorited
-- `getFavoriteMealIds()` - Gets list of favorite IDs
-- `updateFavorite()` - Updates comment and rating
+Open `app/src/main/res/layout/activity_main.xml`. This is the visual blueprint for your home screen.
 
-Room automatically generates the SQL code for these methods.
+Replace everything with:
 
----
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
 
-## 4. API Integration
+    <SearchView
+        android:id="@+id/search_view"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:queryHint="Search meals..."
+        android:iconifiedByDefault="false"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/ai_button"
+        app:layout_constraintHorizontal_weight="1" />
 
-### What is an API?
-An API (Application Programming Interface) is a way for different programs to communicate. In our case, TheMealDB provides an API that lets us get meal data over the internet.
+    <Button
+        android:id="@+id/ai_button"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="AI"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/favorites_button"
+        app:layout_constraintStart_toEndOf="@+id/search_view"
+        app:layout_constraintBottom_toBottomOf="@+id/search_view" />
 
-### TheMealDB API
-**Base URL**: `https://www.themealdb.com/api/json/v1/1/`
-**Endpoint Used**: `search.php?s={query}`
-**File**: `app/src/main/java/com/example/ensa_meal/MainActivity.java:37`
+    <Button
+        android:id="@+id/favorites_button"
+        android:layout_width="wrap_content"
+        android:layout_height="0dp"
+        android:text="⭐"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/ai_button"
+        app:layout_constraintBottom_toBottomOf="@+id/search_view" />
 
-### How the API Call Works
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recycler_view"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginTop="8dp"
+        app:layout_constraintTop_toBottomOf="@+id/search_view"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-**Step 1: User Types in Search**
-- User enters text in SearchView
-- SearchView triggers `onQueryTextChange()`
-- File: `MainActivity.java:113`
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-**Step 2: Create Request**
-```java
-String url = API_URL + query;  // Example: "...search.php?s=chicken"
-JsonObjectRequest request = new JsonObjectRequest(
-    Request.Method.GET,    // GET method (requesting data)
-    url,                   // Where to send request
-    null,                  // No request body needed
-    response -> handleApiResponse(response),  // Success callback
-    error -> handleApiError(error)           // Error callback
-);
+</androidx.constraintlayout.widget.ConstraintLayout>
 ```
-File: `MainActivity.java:147`
 
-**Step 3: Volley Sends Request**
-Volley is a library that handles the network communication. It:
-- Creates HTTP connection
-- Sends request to server
-- Waits for response
-- Returns result to our callbacks
+**Understanding this XML:**
 
-**Step 4: Receive JSON Response**
-The API returns data in JSON format:
-```json
-{
-  "meals": [
-    {
-      "idMeal": "52772",
-      "strMeal": "Teriyaki Chicken",
-      "strMealThumb": "https://...",
-      "strInstructions": "Preheat oven..."
+**ConstraintLayout**: Think of it as a magnetic board where you pin elements relative to each other. "Put this button to the right of that search bar." This is more flexible than older layouts like LinearLayout.
+
+**SearchView**: A pre-built search box. Users type here to filter meals.
+
+**RecyclerView**: This will display your meal grid. It's called "RecyclerView" because it recycles views—when you scroll, it reuses UI elements instead of creating new ones. This makes scrolling smooth even with thousands of items.
+
+**ProgressBar**: A loading spinner. We set `visibility="gone"` initially (completely hidden). When loading data, we'll make it visible.
+
+**android:id="@+id/..."**: These are IDs you'll use in Java to reference these UI elements. `@+id` creates a new ID; `@id` references an existing one.
+
+**Constraints**: Lines like `app:layout_constraintTop_toBottomOf="@+id/search_view"` mean "Position my top edge below the search view's bottom edge." ConstraintLayout requires every view to be constrained in both horizontal and vertical directions.
+
+### Step 3.5: Creating the Meal Card Layout
+
+Each meal needs its own card design. Create a new layout file:
+
+Right-click `res/layout` → New → Layout Resource File → Name it `item_plat.xml`
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <ImageView
+            android:id="@+id/plat_image"
+            android:layout_width="match_parent"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Meal image" />
+
+        <TextView
+            android:id="@+id/plat_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Meal Name"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black" />
+
+        <RatingBar
+            android:id="@+id/plat_rating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:numStars="5"
+            android:stepSize="0.5"
+            android:rating="0"
+            android:isIndicator="true"
+            style="?android:attr/ratingBarStyleSmall" />
+
+    </LinearLayout>
+</androidx.cardview.widget.CardView>
+```
+
+**Understanding this layout:**
+
+**CardView**: Creates a card with rounded corners and shadow (elevation). This is Material Design—Google's design language for Android.
+
+**LinearLayout**: Arranges children vertically (orientation="vertical"). Simple but effective for stacking image, text, and rating.
+
+**ImageView scaleType="centerCrop"**: When the image aspect ratio doesn't match the ImageView dimensions, this crops the image to fill the space without distorting it.
+
+**RatingBar**: Shows stars. `isIndicator="true"` means users can't interact with it on this screen (it's read-only). In the favorites screen, we'll make it editable.
+
+### Step 3.6: Creating the Adapter
+
+Now we connect our data (meals) to our RecyclerView. This requires understanding a crucial Android pattern.
+
+Right-click `com.example.ensa_meal` → New → Java Class → Name it `AdapterMeals`
+
+**What is an Adapter?** Think of it as a translator. You have data (a list of meals) and a view (RecyclerView). The adapter takes each meal from your list and creates a visual card for it. When you scroll, the adapter intelligently recycles old cards to show new data—this is what makes scrolling smooth.
+
+**The Pattern**: RecyclerView.Adapter uses three key methods:
+1. **onCreateViewHolder**: "Create a blank card template"
+2. **onBindViewHolder**: "Fill this card with meal #5's data"
+3. **getItemCount**: "How many cards total?"
+
+Write this in `app/src/main/java/com/example/ensa_meal/AdapterMeals.java`:
+
+```java
+package com.example.ensa_meal;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+public class AdapterMeals extends RecyclerView.Adapter<AdapterMeals.Holder> {
+    private final ArrayList<Plat> plats;
+    private final Context context;
+    private final OnItemClickListener clickListener;
+    private Set<String> favoriteMealIds;
+
+    // Interface for click events
+    public interface OnItemClickListener {
+        void onItemClick(int position);
+        void onToggleFavoriteClick(int position);
     }
-  ]
-}
-```
 
-**Step 5: Parse Response**
-File: `MainActivity.java:178`
-```java
-JSONArray mealsArray = response.getJSONArray("meals");
-for (int i = 0; i < mealsArray.length(); i++) {
-    JSONObject meal = mealsArray.getJSONObject(i);
-    String id = meal.optString("idMeal");
-    String name = meal.optString("strMeal");
-    // Create Plat object...
-}
-```
-
-**Step 6: Display in RecyclerView**
-- Create `Plat` objects from JSON
-- Add to ArrayList
-- Call `notifyDataSetChanged()` to update UI
-
-### Error Handling
-File: `MainActivity.java:252`
-- Checks for network errors
-- Shows user-friendly error messages
-- Logs errors for debugging
-
----
-
-## 5. User Interface and Navigation
-
-### Activity Flow
-```
-MainActivity (Home)
-    │
-    ├─→ Instructions (Meal Details)
-    │
-    ├─→ FavoritesActivity (Favorite Meals)
-    │
-    └─→ AIChatActivity (AI Assistant)
-```
-
-### MainActivity
-**File**: `app/src/main/java/com/example/ensa_meal/MainActivity.java`
-**Layout**: `app/src/main/res/layout/activity_main.xml`
-
-**What it does:**
-- Entry point of the app
-- Shows search bar at top
-- Displays meal list in RecyclerView
-- Has AI and Favorites buttons
-
-**Key Components:**
-1. **SearchView** - User types meal name here
-2. **RecyclerView** - Scrollable list of meals
-3. **AI Button** - Opens AI chat
-4. **Favorites Button** - Opens favorites page
-5. **ProgressBar** - Shows loading indicator
-
-**How navigation works from MainActivity to Instructions:**
-
-When user taps a meal:
-1. `onItemClick(position)` is called (File: `MainActivity.java:212`)
-2. Get the `Plat` object at that position
-3. Create an `Intent` (Android's way of navigating between screens)
-4. Put the `Plat` data into a `Bundle` (data container)
-5. Start `Instructions` activity
-6. Android transitions to new screen
-
-```java
-Intent intent = new Intent(this, Instructions.class);
-Bundle bundle = new Bundle();
-bundle.putSerializable("MEAL", plat);  // Plat implements Serializable
-intent.putExtras(bundle);
-startActivity(intent);  // Android handles the transition
-```
-
-The transition happens because:
-- Android's `ActivityManager` creates the new activity
-- The old activity is paused and moved to background
-- The new activity is created and displayed
-- Data is passed via the Intent extras
-
-### Instructions Activity
-**File**: `app/src/main/java/com/example/ensa_meal/Instructions.java`
-**Layout**: `app/src/main/res/layout/activity_instructions.xml`
-
-**What it does:**
-- Shows meal details (image, name, instructions)
-- Lets user add to favorites
-- Displays if meal is already favorited
-
-**How it receives data:**
-```java
-Intent intent = getIntent();
-Bundle bundle = intent.getExtras();
-// For Android 13+ (API 33)
-plat = bundle.getSerializable("MEAL", Plat.class);
-// For older Android versions
-plat = (Plat) bundle.getSerializable("MEAL");
-```
-File: `Instructions.java:42`
-
-**Why different handling for Android versions?**
-Android 13 changed how Serializable objects are retrieved for better type safety.
-
-### FavoritesActivity
-**File**: `app/src/main/java/com/example/ensa_meal/FavoritesActivity.java`
-**Layout**: `app/src/main/res/layout/activity_favorites.xml`
-
-**What it does:**
-- Shows all favorite meals
-- Displays user comments and ratings
-- Shows "time ago" (e.g., "2 days ago")
-- Allows editing and deleting favorites
-- Has swipe-to-delete feature
-
-**Swipe to Delete Feature:**
-File: `FavoritesActivity.java:78`
-
-Uses `ItemTouchHelper` which detects swipe gestures:
-```java
-new ItemTouchHelper(new ItemTouchHelper.SimpleCallback(0,
-    ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-
-    public boolean onMove(...) { return false; }
-
-    public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-        deleteFavorite(position);  // Delete the swiped item
+    public AdapterMeals(ArrayList<Plat> plats, Context context, OnItemClickListener clickListener, Set<String> favoriteMealIds) {
+        this.plats = plats;
+        this.context = context;
+        this.clickListener = clickListener;
+        this.favoriteMealIds = favoriteMealIds;
     }
-}).attachToRecyclerView(recyclerView);
-```
 
-When user swipes left or right, `onSwiped()` is triggered and the item is deleted.
+    @NonNull
+    @Override
+    public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        LayoutInflater inflater = LayoutInflater.from(context);
+        View view = inflater.inflate(R.layout.model_plat, parent, false);
+        return new Holder(view);
+    }
 
-### AIChatActivity
-**File**: `app/src/main/java/com/example/ensa_meal/AIChatActivity.java`
-**Layout**: `app/src/main/res/layout/activity_ai_chat.xml`
+    @Override
+    public void onBindViewHolder(@NonNull Holder holder, int position) {
+        Plat p = plats.get(position);
+        holder.tId.setText(p.getId());
+        holder.tName.setText(p.getName());
 
-**What it does:**
-- Chat interface for AI questions
-- User types questions about cooking
-- AI responds with brief answers
-- Shows conversation history
+        // Load image with Glide
+        Glide.with(context).load(p.getImageURL()).into(holder.image);
 
----
+        // Show favorite star if this meal is favorited
+        if (favoriteMealIds.contains(p.getId())) {
+            holder.favoriteIcon.setImageResource(android.R.drawable.btn_star_big_on);
+        } else {
+            holder.favoriteIcon.setImageResource(android.R.drawable.btn_star_big_off);
+        }
 
-## 6. Core Features
+        // Click on card to view details
+        holder.itemView.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onItemClick(holder.getAdapterPosition());
+            }
+        });
 
-### Feature 1: Search Meals
+        // Click star to toggle favorite
+        holder.favoriteIcon.setOnClickListener(v -> {
+            if (clickListener != null) {
+                clickListener.onToggleFavoriteClick(holder.getAdapterPosition());
+            }
+        });
+    }
 
-**How it works:**
-1. User types in SearchView
-2. `onQueryTextChange()` triggered on every character
-3. Makes API call with search query
-4. Receives JSON response
-5. Parses data into `Plat` objects
-6. Updates RecyclerView
+    @Override
+    public int getItemCount() {
+        return plats.size();
+    }
 
-**Why real-time search?**
-Provides better user experience - results appear as you type.
+    public void setFavoriteMealIds(Set<String> favoriteMealIds) {
+        this.favoriteMealIds = favoriteMealIds;
+        notifyDataSetChanged();
+    }
 
-### Feature 2: RecyclerView Display
+    public class Holder extends RecyclerView.ViewHolder {
+        ImageView image;
+        TextView tId, tName;
+        ImageView favoriteIcon;
 
-**What is RecyclerView?**
-RecyclerView is Android's efficient way to display scrollable lists. It only creates views for items currently visible on screen, recycling views as user scrolls.
-
-**How AdapterMeals works:**
-File: `app/src/main/java/com/example/ensa_meal/AdapterMeals.java`
-
-1. **ViewHolder Pattern**: Holds references to views in each list item
-```java
-class ViewHolder {
-    ImageView image;
-    TextView tId;
-    TextView tName;
-    ImageView favoriteIcon;
-}
-```
-
-2. **onCreateViewHolder()**: Creates view for each item
-3. **onBindViewHolder()**: Fills view with data
-```java
-holder.tName.setText(plat.getName());
-holder.tId.setText(plat.getId());
-Glide.with(context).load(plat.getImageURL()).into(holder.image);
-```
-
-4. **Click Listeners**: Handles user taps
-```java
-holder.itemView.setOnClickListener(v -> listener.onItemClick(position));
-holder.favoriteIcon.setOnClickListener(v -> listener.onToggleFavoriteClick(position));
-```
-
-### Feature 3: Add to Favorites
-
-**From MainActivity:**
-File: `MainActivity.java:222`
-
-When star icon clicked:
-1. Check if already favorite using `favoriteDao.isFavorite(mealId)`
-2. If favorite: Remove from database
-3. If not favorite: Add to database with default values
-4. Update UI to reflect new state
-
-**From Instructions:**
-File: `Instructions.java:87`
-
-Shows dialog with:
-- EditText for user comment
-- RatingBar for rating (0-5 stars)
-- Save button
-
-When saved:
-1. Create `FavoriteEntity` with user's comment and rating
-2. Insert into database
-3. Update UI
-
-### Feature 4: Manage Favorites
-
-**View All Favorites:**
-File: `FavoritesActivity.java:124`
-```java
-List<FavoriteEntity> favorites = favoriteDao.getAllFavorites();
-```
-Room executes: `SELECT * FROM favorites`
-
-**Edit Favorite:**
-Shows dialog with current values pre-filled. On save:
-```java
-favoriteDao.updateFavorite(mealId, newComment, newRating);
-```
-Room executes: `UPDATE favorites SET userComment=?, userRating=? WHERE mealId=?`
-
-**Delete Favorite:**
-Shows confirmation dialog. On confirm:
-```java
-favoriteDao.removeFromFavoritesById(mealId);
-```
-Room executes: `DELETE FROM favorites WHERE mealId=?`
-
-**Time Display:**
-File: `FavoritesAdapter.java:123`
-
-Calculates time difference between now and when favorite was added:
-```java
-long diff = currentTime - addedTime;
-if (diff < minute) return "Just now";
-if (diff < hour) return minutes + " minutes ago";
-if (diff < day) return hours + " hours ago";
-return days + " days ago";
-```
-
-### Feature 5: Search in Favorites
-
-File: `FavoritesActivity.java:134`
-
-Filters the favorites list based on search text:
-```java
-String lowerCaseQuery = query.toLowerCase();
-for (FavoriteEntity fav : allFavorites) {
-    if (fav.getMealName().toLowerCase().contains(lowerCaseQuery)) {
-        filtered.add(fav);
+        public Holder(@NonNull View itemView) {
+            super(itemView);
+            image = itemView.findViewById(R.id.imageView);
+            tId = itemView.findViewById(R.id.modelId);
+            tName = itemView.findViewById(R.id.modelName);
+            favoriteIcon = itemView.findViewById(R.id.favorite_icon);
+        }
     }
 }
 ```
 
----
+**Breaking down this code:**
 
-## 7. AI Integration
+**LayoutInflater**: This takes your XML layout and converts it into actual View objects in memory. Think of it as a 3D printer that reads blueprints and creates physical objects.
 
-### Technology: Groq API
+**ViewHolder Pattern**: The `Holder` class caches view references. Without this, every time you scroll, Android would call `findViewById` repeatedly—slow. With ViewHolder, you find views once and reuse them. This is a massive performance optimization.
 
-**What is Groq?**
-Groq provides fast AI inference using the Llama 3.3 70B model. It's an open-source large language model that can answer questions about cooking.
+**Glide.with(context).load(url).into(imageView)**: This single line does:
+1. Downloads the image from the URL
+2. Caches it on disk so it doesn't re-download
+3. Loads it into memory efficiently
+4. Displays it in the ImageView
+5. Handles threading automatically
 
-**File**: `app/src/main/java/com/example/ensa_meal/AIChatActivity.java`
+Without Glide, this would be 50+ lines of complex code.
 
-### How AI Chat Works
+**OnItemClickListener Interface**: This is the **Observer pattern**. The adapter doesn't know what to do when a meal is clicked—MainActivity decides that. The interface creates a contract: "Whoever uses this adapter must implement these methods." This is called **dependency inversion**—high-level modules (MainActivity) aren't dependent on low-level modules (Adapter).
 
-**Step 1: User Enters Question**
-User types question and clicks Ask button.
+**When professors ask about patterns**: "I used the ViewHolder pattern for performance optimization and the Observer pattern for loose coupling between adapter and activity."
 
-**Step 2: Store User Message in Conversation History**
-File: `AIChatActivity.java:90`
+### Step 3.7: Implementing MainActivity
 
-Before sending to API, the user's message is stored in `conversationHistory` list. This maintains context across multiple exchanges.
+Now we bring everything together. Open `app/src/main/java/com/example/ensa_meal/MainActivity.java` and replace everything with:
 
 ```java
-private void storeUserMessage(String message) {
-    JSONObject userMsg = new JSONObject();
-    userMsg.put("role", "user");
-    userMsg.put("content", message);
-    conversationHistory.add(userMsg);
-}
-```
+package com.example.ensa_meal;
 
-**Step 3: Build API Request with Full Context**
-File: `AIChatActivity.java:152`
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.SearchView;
+import android.widget.Toast;
 
-Creates JSON request with ENTIRE conversation history:
-```json
-{
-  "model": "llama-3.3-70b-versatile",
-  "messages": [
-    {
-      "role": "system",
-      "content": "# CONTEXT\nYou are an AI cooking assistant..."
-    },
-    {
-      "role": "user",
-      "content": "How do I make pasta?"
-    },
-    {
-      "role": "assistant",
-      "content": "To make pasta, boil water..."
-    },
-    {
-      "role": "user",
-      "content": "What sauce goes with it?"
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.android.volley.Request;
+import com.android.volley.RequestQueue;
+import com.android.volley.toolbox.JsonObjectRequest;
+import com.android.volley.toolbox.Volley;
+import com.example.ensa_meal.database.AppDatabase;
+import com.example.ensa_meal.database.FavoriteDao;
+import com.example.ensa_meal.database.FavoriteEntity;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
+
+public class MainActivity extends AppCompatActivity implements AdapterMeals.OnItemClickListener {
+
+    private static final String API_URL = "https://www.themealdb.com/api/json/v1/1/search.php?s=";
+
+    private AdapterMeals adapterMeals;
+    private RecyclerView recyclerView;
+    private ArrayList<Plat> arrayList;
+    private ProgressBar progressBar;
+    private RequestQueue requestQueue;
+    private FavoriteDao favoriteDao;
+    private SearchView searchView;
+    private Button favoritesButton, aiButton;
+    private Set<String> favoriteMealIds;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // Initialize database
+        AppDatabase database = AppDatabase.getInstance(this);
+        favoriteDao = database.favoriteDao();
+
+        initializeViews();
+        setupRecyclerView();
+        setupListeners();
+        loadFavoriteMealIds();
+
+        // Initial search
+        searchMeals("chicken");
     }
-  ],
-  "temperature": 0.3,
-  "top_p": 0.9,
-  "max_tokens": 500
-}
-```
 
-**What these parameters mean:**
-- `model`: Which AI model to use (Llama 3.3 70B)
-- `messages`: Full conversation history (system + all previous exchanges)
-- `temperature`: Creativity level (0.3 = focused and consistent)
-- `top_p`: Nucleus sampling (0.9 = high quality responses)
-- `max_tokens`: Maximum response length
-
-**Why Conversation Memory Matters:**
-The AI remembers previous questions and answers, allowing natural follow-up questions like:
-- "What about the sauce?" (knows you're still talking about pasta)
-- "How long should I cook it?" (remembers the ingredient)
-- "Can I substitute that?" (knows what ingredient you mean)
-
-### COSTAR Prompting Framework
-
-The system prompt uses the COSTAR framework for optimal AI responses:
-
-**C - Context**: AI knows it's in Ensa Meal app, users can search meals and save favorites
-**O - Objective**: Help with cooking questions, remember conversation history
-**S - Style**: Conversational yet informative, simple language, step-by-step guidance
-**T - Tone**: Friendly, helpful, patient - like a knowledgeable friend
-**A - Audience**: Home cooks of all skill levels
-**R - Response Format**: Concise (2-8 sentences), bullet points for lists, reference previous messages
-
-File: `AIChatActivity.java:178`
-
-**Step 4: Send Request with OkHttp**
-File: `AIChatActivity.java:96`
-
-```java
-Request request = new Request.Builder()
-    .url(GROQ_API_URL)
-    .addHeader("Authorization", "Bearer " + BuildConfig.GROQ_API_KEY)
-    .addHeader("Content-Type", "application/json")
-    .post(RequestBody.create(jsonBody, MediaType.parse("application/json")))
-    .build();
-
-client.newCall(request).enqueue(callback);
-```
-
-**Why OkHttp?**
-OkHttp handles HTTP requests asynchronously, preventing UI freezing while waiting for response.
-
-**Step 5: Receive and Parse Response**
-File: `AIChatActivity.java:110`
-
-Response format:
-```json
-{
-  "choices": [
-    {
-      "message": {
-        "content": "To make pasta, boil water..."
-      }
+    private void initializeViews() {
+        recyclerView = findViewById(R.id.recyclerView);
+        progressBar = findViewById(R.id.progressBar);
+        searchView = findViewById(R.id.search_view);
+        favoritesButton = findViewById(R.id.favorites_button);
+        aiButton = findViewById(R.id.ai_button);
     }
-  ]
+
+    private void setupRecyclerView() {
+        arrayList = new ArrayList<>();
+        favoriteMealIds = new HashSet<>();
+        adapterMeals = new AdapterMeals(arrayList, this, this, favoriteMealIds);
+        recyclerView.setAdapter(adapterMeals);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setHasFixedSize(true); // Performance optimization
+    }
+
+    private void setupListeners() {
+        favoritesButton.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, FavoritesActivity.class));
+        });
+
+        aiButton.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, AIChatActivity.class));
+        });
+
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                searchMeals(query);
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                searchMeals(newText);
+                return false;
+            }
+        });
+    }
+
+    private void loadFavoriteMealIds() {
+        favoriteMealIds.clear();
+        favoriteMealIds.addAll(favoriteDao.getFavoriteMealIds());
+        if (adapterMeals != null) {
+            adapterMeals.setFavoriteMealIds(favoriteMealIds);
+        }
+    }
+
+    private void searchMeals(String query) {
+        if (query == null || query.isEmpty()) {
+            return;
+        }
+
+        showLoading(true);
+
+        if (requestQueue == null) {
+            requestQueue = Volley.newRequestQueue(this);
+        }
+
+        JsonObjectRequest request = new JsonObjectRequest(
+            Request.Method.GET,
+            API_URL + query,
+            null,
+            response -> {
+                showLoading(false);
+                handleApiResponse(response);
+            },
+            error -> {
+                showLoading(false);
+                Toast.makeText(this, "Network error", Toast.LENGTH_SHORT).show();
+            }
+        );
+
+        requestQueue.add(request);
+    }
+
+    private void handleApiResponse(JSONObject response) {
+        try {
+            arrayList.clear();
+            if (response.has("meals") && !response.isNull("meals")) {
+                JSONArray mealsArray = response.getJSONArray("meals");
+
+                for (int i = 0; i < mealsArray.length(); i++) {
+                    JSONObject meal = mealsArray.getJSONObject(i);
+                    String id = meal.optString("idMeal", "0");
+                    String name = meal.optString("strMeal", "Unknown");
+                    String imageUrl = meal.optString("strMealThumb", "");
+                    String description = meal.optString("strInstructions", "");
+
+                    Plat plat = new Plat(id, name, imageUrl, description);
+                    arrayList.add(plat);
+                }
+            } else {
+                Toast.makeText(this, "No meals found", Toast.LENGTH_SHORT).show();
+            }
+            adapterMeals.notifyDataSetChanged();
+        } catch (JSONException e) {
+            Toast.makeText(this, "Error parsing data", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onItemClick(int position) {
+        Plat plat = arrayList.get(position);
+        Intent intent = new Intent(this, Instructions.class);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("MEAL", plat);
+        intent.putExtras(bundle);
+        startActivity(intent);
+    }
+
+    @Override
+    public void onToggleFavoriteClick(int position) {
+        Plat plat = arrayList.get(position);
+        String mealId = plat.getId();
+
+        if (favoriteDao.isFavorite(mealId)) {
+            favoriteDao.removeFromFavoritesById(mealId);
+            favoriteMealIds.remove(mealId);
+            Toast.makeText(this, plat.getName() + " removed", Toast.LENGTH_SHORT).show();
+        } else {
+            FavoriteEntity favorite = new FavoriteEntity(
+                mealId, plat.getName(), plat.getImageURL(),
+                plat.getInstructions(), "", 0
+            );
+            favoriteDao.addToFavorites(favorite);
+            favoriteMealIds.add(mealId);
+            Toast.makeText(this, plat.getName() + " added", Toast.LENGTH_SHORT).show();
+        }
+        adapterMeals.setFavoriteMealIds(favoriteMealIds);
+    }
+
+    private void showLoading(boolean show) {
+        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+        recyclerView.setVisibility(show ? View.GONE : View.VISIBLE);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFavoriteMealIds(); // Refresh when returning to this screen
+    }
 }
 ```
 
-Extract answer:
+**Understanding this Activity:**
+
+**onCreate() lifecycle**: This method runs when the activity is created. It's where you initialize everything. Android has a lifecycle: `onCreate → onStart → onResume → onPause → onStop → onDestroy`. Understanding this is crucial.
+
+**findViewById**: Connects Java code to XML views. `R.id.recyclerView` references the RecyclerView you defined in `activity_main.xml`. `R` is auto-generated by Android—it's a resource index.
+
+**LinearLayoutManager**: Tells RecyclerView to arrange items vertically, like a list. You could use `GridLayoutManager` for a grid, or `StaggeredGridLayoutManager` for Pinterest-style layouts.
+
+**Volley's Request Queue**: Volley manages a queue of network requests. Multiple requests can execute concurrently. The queue handles threading, retries, and caching automatically.
+
+**Lambda expressions**: `v -> startActivity(...)` is shorthand for:
 ```java
-JSONArray choices = response.getJSONArray("choices");
-JSONObject message = choices.getJSONObject(0).getJSONObject("message");
-String answer = message.getString("content");
-```
-
-**Step 6: Store Assistant Response**
-File: `AIChatActivity.java:126`
-
-After receiving the AI's response, it's stored in conversation history for future context:
-
-```java
-private void storeAssistantResponse(String response) {
-    JSONObject assistantMsg = new JSONObject();
-    assistantMsg.put("role", "assistant");
-    assistantMsg.put("content", response);
-    conversationHistory.add(assistantMsg);
+new View.OnClickListener() {
+    @Override
+    public void onClick(View v) {
+        startActivity(...);
+    }
 }
 ```
+This is Java 8 syntax that makes code cleaner.
 
-This creates a continuous conversation flow:
-- User message → stored
-- AI response → stored
-- Next user message can reference previous context
-- AI can say "For that pasta we discussed..." or "As I mentioned earlier..."
+**JSON Parsing**: `response.getJSONArray("meals")` navigates the JSON structure. If the API returns `{"meals": [...]}`, this gets that array. `optString` is safer than `getString`—it returns a default value if the key doesn't exist, preventing crashes.
 
-**Step 7: Display in Chat**
-File: `AIChatActivity.java:226`
+**Activity Stack**: When you call `startActivity(intent)`, Android pushes the new activity onto a stack. Pressing back pops it off, returning you to the previous activity.
 
-Appends to chat history and scrolls to bottom:
-```java
-chatHistory.append("You: " + question + "\n\n");
-chatHistory.append("AI: " + answer + "\n\n");
-chatTextView.setText(chatHistory.toString());
-scrollView.fullScroll(View.FOCUS_DOWN);
-```
-
-### Why Use AI?
-
-The university included AI lessons, so adding an AI assistant demonstrates:
-1. Understanding of API integration
-2. Knowledge of modern AI tools
-3. Practical application of machine learning
-4. Enhanced user experience
+**When professors ask about threading**: "I used Volley for networking because it handles background threading automatically. Network operations run off the main thread, so the UI stays responsive. Volley's callbacks (onResponse, onErrorResponse) return results on the main thread, where I can safely update the UI."
 
 ---
 
-## 8. Design Choices
+## Part 4: Building the Detail Screen
 
-### Color Scheme
-**File**: `app/src/main/res/values/colors.xml`
+When users tap a meal card, they should see full details. This requires a new activity.
 
-Colors chosen for:
-- **Readability**: High contrast between text and background
-- **Consistency**: Same colors used throughout app
-- **Material Design**: Follows Google's design guidelines
+### Step 4.1: Create the Detail Activity Class
 
-### Layout Choices
+Right-click `com.example.ensa_meal` → New → Java Class → Name it `Instructions`
 
-**ConstraintLayout**
-Used in all activities because:
-- Flexible positioning of elements
-- Better performance than nested layouts
-- Responsive to different screen sizes
+Write this in `app/src/main/java/com/example/ensa_meal/Instructions.java`:
 
-**RecyclerView vs ListView**
-RecyclerView chosen because:
-- Better performance (view recycling)
-- Built-in animations
-- Flexible layout managers
-
-### User Experience Decisions
-
-**Real-time Search**
-Updates results as user types - faster than waiting for submit button.
-
-**Star Icon for Favorites**
-Universal symbol users recognize immediately.
-
-**Swipe to Delete**
-Common mobile pattern - feels natural to users.
-
-**Progress Bars**
-Shows user something is happening during network requests.
-
-**Toast Messages**
-Quick feedback for actions (added to favorites, deleted, etc.)
-
-**Time Ago Display**
-More user-friendly than absolute timestamps.
-
-### Performance Optimizations
-
-**Image Caching with Glide**
-- Downloads images once
-- Stores in cache
-- Reuses cached images
-- Saves bandwidth and loading time
-
-**ViewHolder Pattern**
-- Prevents redundant `findViewById()` calls
-- Improves scrolling performance
-
-**Singleton Database**
-- One instance across app
-- Prevents memory leaks
-- Faster access
-
-**Request Cancellation**
-File: `MainActivity.java:289`
 ```java
-protected void onStop() {
-    requestQueue.cancelAll(TAG);
+package com.example.ensa_meal;
+
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.os.Build;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.bumptech.glide.Glide;
+import com.example.ensa_meal.database.AppDatabase;
+import com.example.ensa_meal.database.FavoriteDao;
+import com.example.ensa_meal.database.FavoriteEntity;
+
+public class Instructions extends AppCompatActivity {
+    private ImageView imageView;
+    private TextView IDmeal, Name, Inst;
+    private Plat currentPlat;
+    private FavoriteDao favoriteDao;
+    private boolean isFavorite = false;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_instructions);
+
+        // Initialize database
+        AppDatabase database = AppDatabase.getInstance(this);
+        favoriteDao = database.favoriteDao();
+
+        // Initialize views
+        imageView = findViewById(R.id.imageInst);
+        IDmeal = findViewById(R.id.IdInst);
+        Name = findViewById(R.id.NameInstr);
+        Inst = findViewById(R.id.Instr_Inst);
+
+        // Retrieve meal from intent
+        Intent intent = getIntent();
+        Bundle bundle = intent.getExtras();
+
+        if (bundle != null) {
+            Plat plat;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                plat = bundle.getSerializable("MEAL", Plat.class);
+            } else {
+                plat = (Plat) bundle.getSerializable("MEAL");
+            }
+
+            if (plat != null) {
+                currentPlat = plat;
+                isFavorite = favoriteDao.isFavorite(plat.getId());
+
+                IDmeal.setText(plat.getId());
+                Name.setText(plat.getName());
+                Inst.setText(plat.getInstructions());
+
+                Glide.with(this)
+                    .load(plat.getImageURL())
+                    .into(imageView);
+            }
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.instructions_menu, menu);
+        MenuItem favoriteItem = menu.findItem(R.id.action_add_favorite);
+
+        if (isFavorite) {
+            favoriteItem.setIcon(android.R.drawable.star_on);
+            favoriteItem.setTitle("Remove from Favorites");
+        } else {
+            favoriteItem.setIcon(android.R.drawable.star_off);
+            favoriteItem.setTitle("Add to Favorites");
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_add_favorite) {
+            if (isFavorite) {
+                removeFromFavorites();
+            } else {
+                showAddToFavoritesDialog();
+            }
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void showAddToFavoritesDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Add to Favorites");
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favorite, null);
+        EditText editComment = dialogView.findViewById(R.id.editComment);
+        RatingBar editRating = dialogView.findViewById(R.id.editRating);
+
+        builder.setView(dialogView);
+
+        builder.setPositiveButton("Add", (dialog, which) -> {
+            String comment = editComment.getText().toString().trim();
+            float rating = editRating.getRating();
+
+            FavoriteEntity favorite = new FavoriteEntity(
+                currentPlat.getId(), currentPlat.getName(),
+                currentPlat.getImageURL(), currentPlat.getInstructions(),
+                comment.isEmpty() ? null : comment, rating
+            );
+
+            favoriteDao.addToFavorites(favorite);
+            isFavorite = true;
+            invalidateOptionsMenu();
+
+            Toast.makeText(this, "Added to Favorites!", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void removeFromFavorites() {
+        new AlertDialog.Builder(this)
+            .setTitle("Remove from Favorites")
+            .setMessage("Remove this meal from your favorites?")
+            .setPositiveButton("Yes", (dialog, which) -> {
+                favoriteDao.removeFromFavoritesById(currentPlat.getId());
+                isFavorite = false;
+                invalidateOptionsMenu();
+                Toast.makeText(this, "Removed from Favorites", Toast.LENGTH_SHORT).show();
+            })
+            .setNegativeButton("Cancel", null)
+            .show();
+    }
 }
 ```
-Cancels pending API requests when user leaves screen - saves bandwidth.
+
+**Understanding this code:**
+
+**Serializable**: The `Plat` class needs to implement `Serializable` to be passed between activities. Add `implements Serializable` to your Plat class definition. Serializable converts objects to byte streams for transmission.
+
+**Build.VERSION.SDK_INT**: Android API changes over time. Android 13+ requires type-safe `getSerializable()`. This code handles both old and new Android versions—critical for compatibility.
+
+**Options Menu**: The action bar at the top can have menu items. `onCreateOptionsMenu` inflates a menu from XML. `onOptionsItemSelected` handles clicks.
+
+**AlertDialog**: A popup dialog. `AlertDialog.Builder` uses the **Builder pattern**—you chain method calls to configure the dialog, then call `show()`. This makes code readable.
+
+**invalidateOptionsMenu()**: Tells Android to redraw the options menu. When you add/remove a favorite, the star icon needs to update—this method triggers that.
+
+### Step 4.2: Create the Detail Layout
+
+Create `app/src/main/res/layout/activity_instructions.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/imageInst"
+            android:layout_width="0dp"
+            android:layout_height="250dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/IdInst"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textSize="12sp"
+            android:textColor="#888"
+            app:layout_constraintTop_toBottomOf="@id/imageInst"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/NameInstr"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            app:layout_constraintTop_toBottomOf="@id/IdInst"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <TextView
+            android:id="@+id/Instr_Inst"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:textSize="16sp"
+            android:lineSpacingExtra="4dp"
+            app:layout_constraintTop_toBottomOf="@id/NameInstr"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</ScrollView>
+```
+
+**Why ScrollView?** Instructions can be long. ScrollView makes the entire layout scrollable—users can swipe up to see more text.
+
+**fillViewport="true"**: Makes the ScrollView's child fill the available height even if content is short. This prevents layout issues on large screens.
+
+### Step 4.3: Create the Dialog Layout
+
+Create `app/src/main/res/layout/dialog_edit_favorite.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Rate this meal:"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <RatingBar
+        android:id="@+id/editRating"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:numStars="5"
+        android:stepSize="0.5"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Add your comment or note:"
+        android:textSize="14sp"
+        android:layout_marginBottom="8dp" />
+
+    <EditText
+        android:id="@+id/editComment"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="e.g., My favorite meal!"
+        android:inputType="textMultiLine"
+        android:lines="3"
+        android:gravity="top|start"
+        android:padding="12dp" />
+
+</LinearLayout>
+```
+
+**inputType="textMultiLine"**: Allows users to type multiple lines. `textCapSentences` would auto-capitalize first letters.
+
+**gravity="top|start"**: Aligns text to top-left. Without this, text starts centered, which looks odd for multi-line input.
+
+### Step 4.4: Register the Activity
+
+Open `app/src/main/AndroidManifest.xml` and add this inside the `<application>` tag:
+
+```xml
+<activity
+    android:name=".Instructions"
+    android:exported="false" />
+```
+
+**Why register activities?** Android needs to know all activities at install time. The manifest is the contract between your app and the Android system.
+
+**exported="false"**: Means other apps can't launch this activity. Only your app can. This is a security feature—prevents malicious apps from directly opening your screens.
 
 ---
 
-## Technical Concepts Explained
+## Part 5: Building the Database Layer
 
-### What is an Intent?
-An Intent is Android's way to navigate between screens or send data. Think of it like an envelope containing:
-- **Destination**: Which activity to open
-- **Data**: Information to pass (via Bundle)
-- **Action**: What to do when arriving
+Now we implement local storage. When users save favorites, they persist even after closing the app. This requires Room database.
 
-### What is a Bundle?
-A Bundle is a container for key-value pairs. Like a dictionary:
+### Step 5.1: Create the Entity
+
+Right-click `com.example.ensa_meal` → New → Package → Name it `database`
+
+Inside `database` package, create `FavoriteEntity.java`:
+
 ```java
-bundle.put("MEAL", platObject);  // Store
-plat = bundle.get("MEAL");       // Retrieve
-```
+package com.example.ensa_meal.database;
 
-### What is Serializable?
-Serializable converts objects to bytes so they can be:
-- Stored in Bundles
-- Passed between activities
-- Saved to disk
+import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
+import androidx.room.PrimaryKey;
 
-File: `app/src/main/java/com/example/ensa_meal/Plat.java:6`
-
-### What is Volley RequestQueue?
-RequestQueue manages network requests:
-- Queues requests
-- Executes them efficiently
-- Caches responses
-- Handles retries
-
-### What is Room @Dao?
-@Dao (Data Access Object) is an interface Room uses to generate database code:
-```java
-@Dao
-public interface FavoriteDao {
-    @Insert
-    void addToFavorites(FavoriteEntity favorite);  // Room generates SQL
-}
-```
-
-### What is @Entity?
-@Entity marks a class as a database table:
-```java
 @Entity(tableName = "favorites")
 public class FavoriteEntity {
+
     @PrimaryKey
-    private String mealId;  // Becomes table column
+    @NonNull
+    @ColumnInfo(name = "meal_id")
+    private String mealId;
+
+    @ColumnInfo(name = "meal_name")
+    private String mealName;
+
+    @ColumnInfo(name = "meal_image_url")
+    private String mealImageUrl;
+
+    @ColumnInfo(name = "meal_description")
+    private String mealDescription;
+
+    @ColumnInfo(name = "user_comment")
+    private String userComment;
+
+    @ColumnInfo(name = "user_rating")
+    private float userRating;
+
+    @ColumnInfo(name = "added_timestamp")
+    private long addedTimestamp;
+
+    public FavoriteEntity(@NonNull String mealId, String mealName,
+                          String mealImageUrl, String mealDescription,
+                          String userComment, float userRating) {
+        this.mealId = mealId;
+        this.mealName = mealName;
+        this.mealImageUrl = mealImageUrl;
+        this.mealDescription = mealDescription;
+        this.userComment = userComment;
+        this.userRating = userRating;
+        this.addedTimestamp = System.currentTimeMillis();
+    }
+
+    // Getters and setters
+    @NonNull
+    public String getMealId() { return mealId; }
+    public void setMealId(@NonNull String mealId) { this.mealId = mealId; }
+
+    public String getMealName() { return mealName; }
+    public void setMealName(String mealName) { this.mealName = mealName; }
+
+    public String getMealImageUrl() { return mealImageUrl; }
+    public void setMealImageUrl(String mealImageUrl) { this.mealImageUrl = mealImageUrl; }
+
+    public String getMealDescription() { return mealDescription; }
+    public void setMealDescription(String mealDescription) { this.mealDescription = mealDescription; }
+
+    public String getUserComment() { return userComment; }
+    public void setUserComment(String userComment) { this.userComment = userComment; }
+
+    public float getUserRating() { return userRating; }
+    public void setUserRating(float userRating) { this.userRating = userRating; }
+
+    public long getAddedTimestamp() { return addedTimestamp; }
+    public void setAddedTimestamp(long addedTimestamp) { this.addedTimestamp = addedTimestamp; }
 }
 ```
 
-### What is Callback?
-A callback is code that runs when an async operation completes:
+**Understanding Room Annotations:**
+
+**@Entity(tableName = "favorites")**: Tells Room this class represents a database table. Room generates SQL like `CREATE TABLE favorites (...)`.
+
+**@PrimaryKey**: The unique identifier. No two favorites can have the same mealId. This is enforced at the database level.
+
+**@ColumnInfo(name = "...")**: Maps Java field to database column. Without this, Room uses the field name directly. Explicit naming is clearer.
+
+**@NonNull**: Tells Room this field can't be null. Room enforces this—trying to insert a null mealId throws an exception.
+
+**System.currentTimeMillis()**: Returns current time in milliseconds since January 1, 1970 (Unix epoch). This timestamp lets you sort favorites by when they were added.
+
+**Why separate Entity from Plat?** Different concerns. `Plat` is network data. `FavoriteEntity` is database data with extra fields like comments and timestamps. This is **separation of concerns**.
+
+### Step 5.2: Create the DAO
+
+Inside `database` package, create `FavoriteDao.java`:
+
 ```java
-volleyRequest.enqueue(new Callback() {
-    void onSuccess() { }  // Runs when request succeeds
-    void onError() { }    // Runs when request fails
+package com.example.ensa_meal.database;
+
+import androidx.room.Dao;
+import androidx.room.Delete;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+import androidx.room.Update;
+
+import java.util.List;
+
+@Dao
+public interface FavoriteDao {
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    void addToFavorites(FavoriteEntity favorite);
+
+    @Query("SELECT * FROM favorites ORDER BY added_timestamp DESC")
+    List<FavoriteEntity> getAllFavorites();
+
+    @Query("SELECT meal_id FROM favorites")
+    List<String> getFavoriteMealIds();
+
+    @Query("SELECT EXISTS(SELECT 1 FROM favorites WHERE meal_id = :mealId)")
+    boolean isFavorite(String mealId);
+
+    @Query("UPDATE favorites SET user_comment = :comment WHERE meal_id = :mealId")
+    void updateComment(String mealId, String comment);
+
+    @Query("UPDATE favorites SET user_rating = :rating WHERE meal_id = :mealId")
+    void updateRating(String mealId, float rating);
+
+    @Update
+    void updateFavorite(FavoriteEntity favorite);
+
+    @Delete
+    void removeFromFavorites(FavoriteEntity favorite);
+
+    @Query("DELETE FROM favorites WHERE meal_id = :mealId")
+    void removeFromFavoritesById(String mealId);
+
+    @Query("DELETE FROM favorites")
+    void clearAllFavorites();
+}
+```
+
+**What is a DAO?** Data Access Object—a pattern that abstracts database operations. You define an interface, and Room generates the implementation at compile time. This is **code generation**—you write clean interfaces, Room writes the messy SQL.
+
+**@Insert(onConflict = REPLACE)**: If you try to insert a favorite that already exists (same primary key), it replaces the old one instead of crashing.
+
+**@Query**: You write SQL, Room verifies it at compile time. If your SQL is invalid, your code won't compile—this catches errors early.
+
+**ORDER BY added_timestamp DESC**: Sorts favorites newest-first. `DESC` means descending (highest to lowest). This makes recently added favorites appear at the top.
+
+**EXISTS(SELECT 1 ...)**: SQL idiom for "does this exist?". Returns true/false. More efficient than counting rows.
+
+**When professors ask about database**: "I used Room, Google's ORM for SQLite. Room provides compile-time verification of SQL queries, type-safe DAO methods, and automatic object mapping. This reduces boilerplate and prevents runtime SQL errors."
+
+### Step 5.3: Create the Database Class
+
+Inside `database` package, create `AppDatabase.java`:
+
+```java
+package com.example.ensa_meal.database;
+
+import android.content.Context;
+
+import androidx.room.Database;
+import androidx.room.Room;
+import androidx.room.RoomDatabase;
+
+@Database(entities = {FavoriteEntity.class}, version = 1, exportSchema = false)
+public abstract class AppDatabase extends RoomDatabase {
+
+    private static AppDatabase instance;
+    private static final String DATABASE_NAME = "ensa_meal_database";
+
+    public abstract FavoriteDao favoriteDao();
+
+    public static synchronized AppDatabase getInstance(Context context) {
+        if (instance == null) {
+            instance = Room.databaseBuilder(
+                context.getApplicationContext(),
+                AppDatabase.class,
+                DATABASE_NAME
+            )
+            .allowMainThreadQueries() // For simplicity - use background threads in production
+            .fallbackToDestructiveMigration()
+            .build();
+        }
+        return instance;
+    }
+}
+```
+
+**Understanding this pattern:**
+
+**Singleton Pattern**: Only one database instance exists. `synchronized` ensures thread-safety—if two threads try to create the database simultaneously, one waits. Without this, you could create multiple database connections—wasteful and dangerous.
+
+**Room.databaseBuilder()**: Creates the database. Takes context (to access storage), class reference (to know what to build), and name (the file name on disk).
+
+**allowMainThreadQueries()**: Dangerous but convenient for learning. Production apps should use background threads for database operations. Room can block the main thread, freezing your UI.
+
+**fallbackToDestructiveMigration()**: If the database schema changes (e.g., you add a column), Room can't migrate automatically. This tells Room to delete the old database and create a new one. Users lose data, but it's fine for development.
+
+**context.getApplicationContext()**: Uses application context, not activity context. Activity contexts can leak memory if held after the activity is destroyed. Application context lives as long as your app—safe for singletons.
+
+**When professors ask about design patterns**: "I implemented the Singleton pattern for the database to ensure only one instance exists, preventing race conditions and resource waste. I also used the DAO pattern to separate business logic from data access logic."
+
+---
+
+## Part 6: Building Screen 2 - Favorites
+
+The favorites screen shows saved meals with comments and ratings. Users can edit or delete favorites.
+
+### Step 6.1: Create the Favorites Adapter
+
+Create `FavoritesAdapter.java`:
+
+```java
+package com.example.ensa_meal;
+
+import android.content.Context;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.RatingBar;
+import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.bumptech.glide.Glide;
+import com.example.ensa_meal.database.FavoriteEntity;
+
+import java.util.ArrayList;
+
+public class FavoritesAdapter extends RecyclerView.Adapter<FavoritesAdapter.FavoriteViewHolder> {
+
+    private final ArrayList<FavoriteEntity> favorites;
+    private final Context context;
+    private final OnFavoriteActionListener listener;
+
+    public interface OnFavoriteActionListener {
+        void onEditFavorite(int position);
+        void onViewDetails(int position);
+        void onDeleteFavorite(int position);
+    }
+
+    public FavoritesAdapter(ArrayList<FavoriteEntity> favorites, Context context,
+                            OnFavoriteActionListener listener) {
+        this.favorites = favorites;
+        this.context = context;
+        this.listener = listener;
+    }
+
+    @NonNull
+    @Override
+    public FavoriteViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.item_favorite, parent, false);
+        return new FavoriteViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull FavoriteViewHolder holder, int position) {
+        FavoriteEntity favorite = favorites.get(position);
+
+        holder.mealName.setText(favorite.getMealName());
+
+        if (favorite.getUserComment() != null && !favorite.getUserComment().isEmpty()) {
+            holder.comment.setText(favorite.getUserComment());
+            holder.comment.setVisibility(View.VISIBLE);
+        } else {
+            holder.comment.setText("No comment yet. Tap to add.");
+            holder.comment.setAlpha(0.5f);
+        }
+
+        holder.ratingBar.setRating(favorite.getUserRating());
+
+        // Calculate time ago
+        long diff = System.currentTimeMillis() - favorite.getAddedTimestamp();
+        long hours = diff / (1000 * 60 * 60);
+        long days = hours / 24;
+
+        String timeAgo;
+        if (days > 0) {
+            timeAgo = days + " day" + (days > 1 ? "s" : "") + " ago";
+        } else if (hours > 0) {
+            timeAgo = hours + " hour" + (hours > 1 ? "s" : "") + " ago";
+        } else {
+            timeAgo = "Just now";
+        }
+        holder.timestamp.setText(timeAgo);
+
+        Glide.with(context)
+            .load(favorite.getMealImageUrl())
+            .into(holder.mealImage);
+
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) listener.onViewDetails(holder.getAdapterPosition());
+        });
+
+        holder.btnEditFavorite.setOnClickListener(v -> {
+            if (listener != null) listener.onEditFavorite(holder.getAdapterPosition());
+        });
+
+        holder.btnDeleteFavorite.setOnClickListener(v -> {
+            if (listener != null) listener.onDeleteFavorite(holder.getAdapterPosition());
+        });
+    }
+
+    @Override
+    public int getItemCount() {
+        return favorites.size();
+    }
+
+    static class FavoriteViewHolder extends RecyclerView.ViewHolder {
+        ImageView mealImage;
+        TextView mealName, comment, timestamp;
+        ImageButton btnEditFavorite, btnDeleteFavorite;
+        RatingBar ratingBar;
+
+        public FavoriteViewHolder(@NonNull View itemView) {
+            super(itemView);
+            mealImage = itemView.findViewById(R.id.favoriteMealImage);
+            mealName = itemView.findViewById(R.id.favoriteMealName);
+            comment = itemView.findViewById(R.id.favoriteComment);
+            timestamp = itemView.findViewById(R.id.favoriteTimestamp);
+            btnEditFavorite = itemView.findViewById(R.id.btnEditFavorite);
+            btnDeleteFavorite = itemView.findViewById(R.id.btnDeleteFavorite);
+            ratingBar = itemView.findViewById(R.id.favoriteRating);
+        }
+    }
+}
+```
+
+**Time calculation logic**: Converts milliseconds to days/hours. `diff / (1000 * 60 * 60)` converts milliseconds → seconds → minutes → hours. This gives users context: "added 2 days ago."
+
+**setAlpha(0.5f)**: Makes the placeholder text semi-transparent, visually indicating it's not real data.
+
+### Step 6.2: Create Favorites Activity
+
+Create `FavoritesActivity.java`:
+
+```java
+package com.example.ensa_meal;
+
+import android.app.AlertDialog;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.RatingBar;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.recyclerview.widget.ItemTouchHelper;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.ensa_meal.database.AppDatabase;
+import com.example.ensa_meal.database.FavoriteDao;
+import com.example.ensa_meal.database.FavoriteEntity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class FavoritesActivity extends AppCompatActivity implements FavoritesAdapter.OnFavoriteActionListener {
+
+    private RecyclerView recyclerViewFavorites;
+    private FavoritesAdapter favoritesAdapter;
+    private ArrayList<FavoriteEntity> favoritesList;
+    private TextView emptyView;
+    private FavoriteDao favoriteDao;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_favorites);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle("My Favorites");
+        }
+
+        AppDatabase database = AppDatabase.getInstance(this);
+        favoriteDao = database.favoriteDao();
+
+        recyclerViewFavorites = findViewById(R.id.recyclerViewFavorites);
+        emptyView = findViewById(R.id.emptyFavoritesText);
+
+        setupRecyclerView();
+        setupSwipeToDelete();
+        loadFavorites();
+    }
+
+    private void setupRecyclerView() {
+        favoritesList = new ArrayList<>();
+        favoritesAdapter = new FavoritesAdapter(favoritesList, this, this);
+        recyclerViewFavorites.setAdapter(favoritesAdapter);
+        recyclerViewFavorites.setLayoutManager(new LinearLayoutManager(this));
+    }
+
+    private void loadFavorites() {
+        List<FavoriteEntity> entities = favoriteDao.getAllFavorites();
+        favoritesList.clear();
+        favoritesList.addAll(entities);
+        favoritesAdapter.notifyDataSetChanged();
+
+        if (favoritesList.isEmpty()) {
+            emptyView.setVisibility(View.VISIBLE);
+            recyclerViewFavorites.setVisibility(View.GONE);
+        } else {
+            emptyView.setVisibility(View.GONE);
+            recyclerViewFavorites.setVisibility(View.VISIBLE);
+        }
+    }
+
+    @Override
+    public void onEditFavorite(int position) {
+        FavoriteEntity favorite = favoritesList.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Edit Favorite");
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_edit_favorite, null);
+        EditText editComment = dialogView.findViewById(R.id.editComment);
+        RatingBar editRating = dialogView.findViewById(R.id.editRating);
+
+        if (favorite.getUserComment() != null && !favorite.getUserComment().isEmpty()) {
+            editComment.setText(favorite.getUserComment());
+        }
+        editRating.setRating(favorite.getUserRating());
+
+        builder.setView(dialogView);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String comment = editComment.getText().toString().trim();
+            float rating = editRating.getRating();
+
+            favoriteDao.updateComment(favorite.getMealId(), comment);
+            favoriteDao.updateRating(favorite.getMealId(), rating);
+
+            favorite.setUserComment(comment);
+            favorite.setUserRating(rating);
+            favoritesAdapter.notifyItemChanged(position);
+
+            Toast.makeText(this, "Favorite updated", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    @Override
+    public void onViewDetails(int position) {
+        FavoriteEntity favorite = favoritesList.get(position);
+
+        Plat plat = new Plat(favorite.getMealId(), favorite.getMealName(),
+                favorite.getMealImageUrl(), favorite.getMealDescription());
+
+        Intent intent = new Intent(this, Instructions.class);
+        Bundle bundle = new Bundle();
+        bundle.putSerializable("MEAL", plat);
+        intent.putExtras(bundle);
+        startActivity(intent);
+    }
+
+    @Override
+    public void onDeleteFavorite(int position) {
+        new AlertDialog.Builder(this)
+            .setTitle("Delete Favorite")
+            .setMessage("Are you sure?")
+            .setPositiveButton("Yes", (dialog, which) -> deleteFavorite(position))
+            .setNegativeButton("No", null)
+            .show();
+    }
+
+    private void setupSwipeToDelete() {
+        ItemTouchHelper.SimpleCallback simpleCallback = new ItemTouchHelper.SimpleCallback(0,
+                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override
+            public boolean onMove(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder,
+                                  RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                int position = viewHolder.getAdapterPosition();
+                deleteFavorite(position);
+            }
+        };
+
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(simpleCallback);
+        itemTouchHelper.attachToRecyclerView(recyclerViewFavorites);
+    }
+
+    private void deleteFavorite(int position) {
+        FavoriteEntity favorite = favoritesList.get(position);
+        favoriteDao.removeFromFavorites(favorite);
+        favoritesList.remove(position);
+        favoritesAdapter.notifyItemRemoved(position);
+        Toast.makeText(this, "Removed: " + favorite.getMealName(), Toast.LENGTH_SHORT).show();
+
+        if (favoritesList.isEmpty()) {
+            emptyView.setVisibility(View.VISIBLE);
+            recyclerViewFavorites.setVisibility(View.GONE);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFavorites();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
+    }
+}
+```
+
+**Understanding swipe-to-delete:**
+
+**ItemTouchHelper**: A utility class that adds swipe and drag-and-drop to RecyclerView. You provide a callback defining what happens on swipe/move.
+
+**SimpleCallback(0, LEFT | RIGHT)**: First parameter is drag directions (0 = no dragging). Second is swipe directions—`LEFT | RIGHT` means users can swipe either way.
+
+**onMove()**: Called when dragging items to reorder. We return false because we don't support reordering.
+
+**onSwiped()**: Called when user completes a swipe. We delete the item here.
+
+**notifyItemRemoved(position)**: Tells the adapter "item at position X was removed." RecyclerView animates the deletion smoothly. If you used `notifyDataSetChanged()`, the entire list would refresh—no animation.
+
+**When professors ask about UX**: "I implemented swipe-to-delete using ItemTouchHelper. This provides intuitive gestural interaction—users can quickly remove items without extra taps. The animated deletion gives visual feedback, improving user experience."
+
+### Step 6.3: Create Layouts
+
+Create `app/src/main/res/layout/activity_favorites.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewFavorites"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/emptyFavoritesText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="No favorites yet.\nAdd meals from the home screen!"
+        android:textSize="18sp"
+        android:textAlignment="center"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+```
+
+Create `app/src/main/res/layout/item_favorite.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="8dp"
+    app:cardElevation="4dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp">
+
+        <ImageView
+            android:id="@+id/favoriteMealImage"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:scaleType="centerCrop"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
+
+        <TextView
+            android:id="@+id/favoriteMealName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@android:color/black"
+            app:layout_constraintTop_toTopOf="@id/favoriteMealImage"
+            app:layout_constraintStart_toEndOf="@id/favoriteMealImage"
+            app:layout_constraintEnd_toStartOf="@id/btnEditFavorite" />
+
+        <TextView
+            android:id="@+id/favoriteComment"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:textSize="14sp"
+            android:maxLines="2"
+            android:ellipsize="end"
+            app:layout_constraintTop_toBottomOf="@id/favoriteMealName"
+            app:layout_constraintStart_toEndOf="@id/favoriteMealImage"
+            app:layout_constraintEnd_toStartOf="@id/btnEditFavorite" />
+
+        <RatingBar
+            android:id="@+id/favoriteRating"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:layout_marginTop="4dp"
+            android:numStars="5"
+            android:stepSize="0.5"
+            android:isIndicator="true"
+            style="?android:attr/ratingBarStyleSmall"
+            app:layout_constraintTop_toBottomOf="@id/favoriteComment"
+            app:layout_constraintStart_toEndOf="@id/favoriteMealImage" />
+
+        <TextView
+            android:id="@+id/favoriteTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:textSize="12sp"
+            android:textColor="#888"
+            app:layout_constraintTop_toTopOf="@id/favoriteRating"
+            app:layout_constraintBottom_toBottomOf="@id/favoriteRating"
+            app:layout_constraintStart_toEndOf="@id/favoriteRating" />
+
+        <ImageButton
+            android:id="@+id/btnEditFavorite"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="4dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_edit"
+            android:contentDescription="Edit favorite"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/btnDeleteFavorite" />
+
+        <ImageButton
+            android:id="@+id/btnDeleteFavorite"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_delete"
+            android:contentDescription="Delete favorite"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.cardview.widget.CardView>
+```
+
+**?attr/selectableItemBackgroundBorderless**: This is a theme attribute. It creates a ripple effect when the button is clicked—visual feedback that feels modern. The `?` means "look this up in the current theme."
+
+**ellipsize="end"**: If text is too long for the space, it adds "..." at the end. Combined with `maxLines="2"`, this prevents comments from taking too much space.
+
+### Step 6.4: Register the Activity
+
+Add to `AndroidManifest.xml`:
+
+```xml
+<activity
+    android:name=".FavoritesActivity"
+    android:exported="false"
+    android:parentActivityName=".MainActivity" />
+```
+
+**parentActivityName**: Creates an "Up" button in the action bar. When users tap it, they return to MainActivity. Android handles the navigation—you don't write code for this.
+
+---
+
+You've now completed the first six parts! You have a working meal browser, detail screen, database layer, and favorites screen. The remaining parts (AI Chat implementation and presentation guidance) follow similar patterns.
+
+**Key concepts you've learned:**
+- Three-tier architecture (UI, business logic, data)
+- RecyclerView with Adapter and ViewHolder patterns
+- Room database with Entity, DAO, and Singleton patterns
+- Volley for networking with automatic threading
+- Glide for image loading and caching
+- Intent-based navigation between activities
+- Material Design principles (CardView, elevation, ripples)
+- Swipe gestures with ItemTouchHelper
+- Observer pattern with click listeners
+- Lifecycle methods (onCreate, onResume, etc.)
+
+When presenting, focus on **why** you made each choice. Professors care less about syntax and more about understanding architectural decisions.
+
+---
+
+## Part 7: Building Screen 3 - The AI Chat
+
+The AI chat is the crown jewel of your app. Users can ask cooking questions in any language, and the AI responds intelligently—drawing from their personal favorites list.
+
+### Step 7.1: Understanding the AI Architecture
+
+Before coding, grasp how this works:
+
+```
+User types question → AIChatActivity → OkHttp request → Groq API
+                                            ↓
+                                    AI processes with:
+                                    - COSTAR system prompt
+                                    - User's favorites context
+                                    - Conversation history
+                                            ↓
+                                    AI response → Display to user
+```
+
+**Why Groq?** Groq provides fast inference on open-source LLMs like Llama 3.3. It's free for development and respects your API usage patterns.
+
+**Why OkHttp instead of Volley?** Groq requires custom headers (Bearer authentication) and POST requests with JSON bodies. OkHttp gives us fine-grained control. Volley is simpler but less flexible.
+
+### Step 7.2: Securing the API Key
+
+**Critical security practice**: Never hardcode API keys in source code. They'd be visible in version control and decompiled APKs.
+
+**Solution**: Use BuildConfig to inject the key at build time from a gitignored file.
+
+Open the root `local.properties` file (it's gitignored by default) and add:
+
+```properties
+GROQ_API_KEY=your_groq_api_key_here
+```
+
+**Getting your Groq API key:**
+1. Visit https://console.groq.com
+2. Sign up (free)
+3. Navigate to API Keys
+4. Create a new key
+5. Copy it to `local.properties`
+
+Open `app/build.gradle.kts` and add this inside the `android` block, within `defaultConfig`:
+
+```kotlin
+android {
+    defaultConfig {
+        // Existing config...
+
+        // Load API key from local.properties
+        val properties = Properties()
+        val localPropertiesFile = rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(FileInputStream(localPropertiesFile))
+        }
+
+        buildConfigField("String", "GROQ_API_KEY",
+            "\"${properties.getProperty("GROQ_API_KEY", "")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
+    }
+}
+```
+
+**How this works**: Gradle reads `local.properties` at build time and generates a `BuildConfig.java` class with a `GROQ_API_KEY` constant. In your code, you reference `BuildConfig.GROQ_API_KEY`—the actual key never appears in source code.
+
+**When professors ask about security**: "I used BuildConfig injection to keep API keys out of source control. The key is read from a gitignored local.properties file at build time. This prevents credential leakage in version control or decompiled APKs—a standard security practice for mobile apps."
+
+### Step 7.3: Create the AI Chat Layout
+
+Create `app/src/main/res/layout/activity_ai_chat.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/ai_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="AI Meal Assistant"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <TextView
+        android:id="@+id/ai_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ask me anything about meals and recipes"
+        android:textSize="14sp"
+        android:gravity="center"
+        android:paddingBottom="16dp"
+        android:alpha="0.7"
+        app:layout_constraintTop_toBottomOf="@id/ai_title"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <ScrollView
+        android:id="@+id/scroll_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintTop_toBottomOf="@id/ai_subtitle"
+        app:layout_constraintBottom_toTopOf="@id/input_container"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:id="@+id/chat_text_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textSize="16sp"
+            android:lineSpacingExtra="4dp"
+            android:padding="8dp"
+            android:text="Welcome! Ask me about any meal or recipe." />
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/input_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <EditText
+            android:id="@+id/question_input"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:hint="Ask about a meal..."
+            android:inputType="textCapSentences"
+            android:maxLines="3"
+            android:padding="12dp" />
+
+        <Button
+            android:id="@+id/send_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Ask" />
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/progress_bar"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
+        app:layout_constraintTop_toTopOf="@id/scroll_view"
+        app:layout_constraintBottom_toBottomOf="@id/scroll_view"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+```
+
+**Layout structure**: A classic chat UI. Title at top, scrollable chat area in middle, input and button at bottom. The ScrollView expands to fill available space (`0dp` height with constraints top and bottom).
+
+### Step 7.4: Implementing AIChatActivity
+
+Create `AIChatActivity.java`:
+
+```java
+package com.example.ensa_meal;
+
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import okhttp3.Call;
+import okhttp3.Callback;
+import okhttp3.MediaType;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
+import com.example.ensa_meal.database.AppDatabase;
+import com.example.ensa_meal.database.FavoriteDao;
+import com.example.ensa_meal.database.FavoriteEntity;
+
+public class AIChatActivity extends AppCompatActivity {
+
+    private static final String GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+    private EditText questionInput;
+    private Button sendButton;
+    private TextView chatTextView;
+    private ProgressBar progressBar;
+    private ScrollView scrollView;
+    private OkHttpClient client;
+    private StringBuilder chatHistory;
+    private List<JSONObject> conversationHistory;
+    private FavoriteDao favoriteDao;
+    private List<FavoriteEntity> userFavorites;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_ai_chat);
+
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        }
+
+        initializeViews();
+        setupListeners();
+
+        client = new OkHttpClient();
+        chatHistory = new StringBuilder();
+        conversationHistory = new ArrayList<>();
+
+        AppDatabase database = AppDatabase.getInstance(this);
+        favoriteDao = database.favoriteDao();
+        loadFavorites();
+    }
+
+    private void initializeViews() {
+        questionInput = findViewById(R.id.question_input);
+        sendButton = findViewById(R.id.send_button);
+        chatTextView = findViewById(R.id.chat_text_view);
+        progressBar = findViewById(R.id.progress_bar);
+        scrollView = findViewById(R.id.scroll_view);
+    }
+
+    private void setupListeners() {
+        sendButton.setOnClickListener(v -> {
+            String question = questionInput.getText().toString().trim();
+            if (!question.isEmpty()) {
+                sendQuestionToAI(question);
+            } else {
+                Toast.makeText(this, "Please enter a question", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void sendQuestionToAI(String question) {
+        if (BuildConfig.GROQ_API_KEY == null || BuildConfig.GROQ_API_KEY.isEmpty()) {
+            Toast.makeText(this, "Please add your Groq API key in local.properties", Toast.LENGTH_LONG).show();
+            appendToChat("Error: API key not configured. Add GROQ_API_KEY to local.properties\n\n");
+            return;
+        }
+
+        showLoading(true);
+        sendButton.setEnabled(false);
+
+        appendToChat("You: " + question + "\n\n");
+        storeUserMessage(question);
+        questionInput.setText("");
+
+        try {
+            JSONObject requestBody = buildRequestBody(question);
+
+            Request request = new Request.Builder()
+                .url(GROQ_API_URL)
+                .addHeader("Authorization", "Bearer " + BuildConfig.GROQ_API_KEY)
+                .addHeader("Content-Type", "application/json")
+                .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
+                .build();
+
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, IOException e) {
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        sendButton.setEnabled(true);
+                        Toast.makeText(AIChatActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                        appendToChat("Error: Could not connect to AI service\n\n");
+                    });
+                }
+
+                @Override
+                public void onResponse(Call call, Response response) throws IOException {
+                    String responseBody = response.body().string();
+
+                    runOnUiThread(() -> {
+                        showLoading(false);
+                        sendButton.setEnabled(true);
+
+                        if (response.isSuccessful()) {
+                            try {
+                                JSONObject jsonResponse = new JSONObject(responseBody);
+                                String answer = extractAnswer(jsonResponse);
+                                appendToChat("AI: " + answer + "\n\n");
+                                storeAssistantResponse(answer);
+                            } catch (JSONException e) {
+                                Toast.makeText(AIChatActivity.this, "Error parsing response", Toast.LENGTH_SHORT).show();
+                                appendToChat("Error: Invalid response from AI\n\n");
+                            }
+                        } else {
+                            String errorMsg = "API Error: " + response.code();
+                            if (response.code() == 401) {
+                                errorMsg = "Invalid API key. Check local.properties";
+                                appendToChat("Error: Invalid or expired API key.\n\nCheck GROQ_API_KEY in local.properties file\n\n");
+                            } else {
+                                appendToChat("Error: AI service returned error code " + response.code() + "\n\n");
+                            }
+                            Toast.makeText(AIChatActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                        }
+                    });
+                }
+            });
+        } catch (JSONException e) {
+            showLoading(false);
+            sendButton.setEnabled(false);
+            Toast.makeText(this, "Error creating request", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private JSONObject buildRequestBody(String question) throws JSONException {
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("model", "llama-3.3-70b-versatile");
+
+        JSONArray messages = new JSONArray();
+
+        JSONObject systemMessage = new JSONObject();
+        systemMessage.put("role", "system");
+        systemMessage.put("content", buildCostarPrompt());
+        messages.put(systemMessage);
+
+        for (JSONObject msg : conversationHistory) {
+            messages.put(msg);
+        }
+
+        requestBody.put("messages", messages);
+        requestBody.put("temperature", 0.3);
+        requestBody.put("top_p", 0.9);
+        requestBody.put("max_tokens", 500);
+
+        return requestBody;
+    }
+
+    private String buildCostarPrompt() {
+        String favoritesContext = buildFavoritesContext();
+
+        return "# CONTEXT\n" +
+                "You are a cooking assistant in Ensa Meal app. Users ask cooking questions. You have conversation history.\n\n" +
+
+                "# USER'S FAVORITE MEALS\n" +
+                favoritesContext + "\n" +
+                "You can suggest what to cook from these favorites when asked.\n\n" +
+
+                "# OBJECTIVE\n" +
+                "Answer cooking questions briefly and simply. Remember previous messages for follow-up questions. " +
+                "Help users decide what to cook from their favorites.\n\n" +
+
+                "# STYLE\n" +
+                "Simple words. Easy to understand. Like texting a friend. No fancy language.\n\n" +
+
+                "# TONE\n" +
+                "Friendly and helpful. Quick and direct.\n\n" +
+
+                "# AUDIENCE\n" +
+                "Anyone who cooks. Keep it simple.\n\n" +
+
+                "# CRITICAL LANGUAGE RULE\n" +
+                "ALWAYS respond in the SAME LANGUAGE the user writes in:\n" +
+                "- English question → English answer\n" +
+                "- Moroccan Darija question → Moroccan Darija answer\n" +
+                "- French question → French answer\n" +
+                "- Arabic question → Arabic answer\n" +
+                "Match the user's language EXACTLY. This is mandatory.\n\n" +
+
+                "# RESPONSE FORMAT\n" +
+                "Keep answers VERY brief:\n\n" +
+
+                "For GREETINGS (Hi, Hello, Salam, etc):\n" +
+                "Just say: 'Hi! How can I help you?'\n" +
+                "Nothing more.\n\n" +
+
+                "For FAVORITES QUESTIONS (What should I cook? What to make? etc):\n" +
+                "Suggest 2-3 meals from their favorites list.\n" +
+                "Example: 'Try making [meal 1] or [meal 2].'\n" +
+                "Keep it short.\n\n" +
+
+                "For INGREDIENTS questions:\n" +
+                "1. ingredient one\n" +
+                "2. ingredient two\n" +
+                "3. ingredient three\n" +
+                "That's it. No extra text.\n\n" +
+
+                "For RECIPE/STEPS questions:\n" +
+                "1. brief step\n" +
+                "2. brief step\n" +
+                "3. brief step\n" +
+                "Max 5-6 steps. Short sentences.\n\n" +
+
+                "For TIME/TEMPERATURE questions:\n" +
+                "Direct answer in 1 sentence. Example: 'Cook for 20 minutes at 180°C.'\n\n" +
+
+                "For TIPS/SUBSTITUTIONS:\n" +
+                "1-2 sentences max. Direct and simple.\n\n" +
+
+                "For FOLLOW-UP questions:\n" +
+                "Reference previous topic briefly, then answer in 1-2 sentences.\n\n" +
+
+                "RULES:\n" +
+                "- When user asks what to cook, suggest from their favorites\n" +
+                "- No long explanations\n" +
+                "- No professional cooking terms unless necessary\n" +
+                "- No 'hope this helps' or extra fluff\n" +
+                "- Get straight to the point\n" +
+                "- Use numbers for lists\n" +
+                "- Maximum 4-5 sentences for any answer\n" +
+                "- Respond in user's language (English, Darija, French, Arabic, etc)";
+    }
+
+    private String extractAnswer(JSONObject response) throws JSONException {
+        JSONArray choices = response.getJSONArray("choices");
+        if (choices.length() > 0) {
+            JSONObject firstChoice = choices.getJSONObject(0);
+            JSONObject message = firstChoice.getJSONObject("message");
+            return message.getString("content");
+        }
+        return "No response from AI";
+    }
+
+    private void appendToChat(String text) {
+        chatHistory.append(text);
+        chatTextView.setText(chatHistory.toString());
+        scrollView.post(() -> scrollView.fullScroll(View.FOCUS_DOWN));
+    }
+
+    private void showLoading(boolean show) {
+        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
+    }
+
+    private void storeUserMessage(String message) {
+        try {
+            JSONObject userMsg = new JSONObject();
+            userMsg.put("role", "user");
+            userMsg.put("content", message);
+            conversationHistory.add(userMsg);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void storeAssistantResponse(String response) {
+        try {
+            JSONObject assistantMsg = new JSONObject();
+            assistantMsg.put("role", "assistant");
+            assistantMsg.put("content", response);
+            conversationHistory.add(assistantMsg);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadFavorites() {
+        userFavorites = favoriteDao.getAllFavorites();
+    }
+
+    private String buildFavoritesContext() {
+        if (userFavorites == null || userFavorites.isEmpty()) {
+            return "User has no favorite meals saved yet.";
+        }
+
+        StringBuilder context = new StringBuilder("User's favorite meals:\n");
+        for (int i = 0; i < userFavorites.size(); i++) {
+            FavoriteEntity fav = userFavorites.get(i);
+            context.append((i + 1)).append(". ").append(fav.getMealName());
+            if (fav.getUserComment() != null && !fav.getUserComment().isEmpty()) {
+                context.append(" (Note: ").append(fav.getUserComment()).append(")");
+            }
+            context.append("\n");
+        }
+        return context.toString();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        loadFavorites();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
+    }
+}
+```
+
+**Understanding this implementation:**
+
+### The COSTAR Framework
+
+**What is COSTAR?** A prompt engineering framework that structures AI instructions. Each letter represents a section:
+
+- **C**ontext: "You are a cooking assistant"
+- **O**bjective: "Answer cooking questions briefly"
+- **S**tyle: "Simple words, like texting a friend"
+- **T**one: "Friendly and helpful"
+- **A**udience: "Anyone who cooks"
+- **R**esponse: "Format rules for different question types"
+
+**Why use a framework?** LLMs perform better with structured prompts. Random instructions produce inconsistent results. COSTAR creates a "personality" for the AI—consistent, predictable, aligned with your app's goals.
+
+### Conversation History
+
+Notice `conversationHistory` stores all messages. When you send a new question, the entire conversation is sent to the AI. This gives **context**:
+
+```
+You: "What should I cook?"
+AI: "Try making Chicken Teriyaki."
+You: "How long does it take?"  ← AI knows "it" refers to Teriyaki
+AI: "About 25 minutes."
+```
+
+Without history, the AI wouldn't know what "it" means.
+
+### Favorites Integration
+
+`buildFavoritesContext()` loads user favorites and injects them into the system prompt. When someone asks "What should I cook?", the AI suggests from **their** favorites, not random meals. This is personalization.
+
+```
+User's favorite meals:
+1. Teriyaki Chicken (Note: Easy weeknight dinner)
+2. Spaghetti Carbonara
+3. Beef Tacos (Note: Kids love this)
+```
+
+The AI sees this and suggests: "Try making Teriyaki Chicken or Beef Tacos."
+
+### Multilingual Support
+
+The prompt contains:
+```
+CRITICAL LANGUAGE RULE
+ALWAYS respond in the SAME LANGUAGE the user writes in
+```
+
+If the user types in Moroccan Darija: "شنو نطيب؟" (What should I cook?), the AI responds in Darija. This works because modern LLMs are multilingual—they detect input language and mirror it.
+
+### API Parameters
+
+```java
+requestBody.put("temperature", 0.3);
+requestBody.put("top_p", 0.9);
+requestBody.put("max_tokens", 500);
+```
+
+**temperature**: Controls randomness. 0.3 is low—responses are focused and consistent. High values (0.8+) make responses creative but unpredictable.
+
+**top_p**: Nucleus sampling. 0.9 means "consider the top 90% probable tokens." This balances quality and diversity.
+
+**max_tokens**: Maximum response length. 500 tokens ≈ 375 words. Limits cost and keeps answers concise.
+
+**When professors ask about AI integration**: "I integrated the Groq API using OkHttp for HTTP requests. I implemented the COSTAR prompting framework to structure AI behavior—defining context, objectives, style, tone, and response format. I pass conversation history to maintain context across messages, and I dynamically inject the user's favorites into the system prompt for personalization. The AI supports multiple languages through prompt engineering—I instruct it to mirror the user's language exactly."
+
+### Step 7.5: Register the Activity
+
+Add to `AndroidManifest.xml`:
+
+```xml
+<activity
+    android:name=".AIChatActivity"
+    android:exported="false"
+    android:parentActivityName=".MainActivity" />
+```
+
+### Step 7.6: Make Plat Serializable
+
+The `Plat` class must implement `Serializable`. Open `Plat.java` and ensure it looks like this:
+
+```java
+package com.example.ensa_meal;
+
+import java.io.Serializable;
+
+public class Plat implements Serializable {
+    private static final long serialVersionUID = 1L;
+
+    private String id;
+    private String name;
+    private String imageURL;
+    private String instructions;
+
+    public Plat(String id, String name, String imageURL, String instructions) {
+        this.id = id;
+        this.name = name;
+        this.imageURL = imageURL;
+        this.instructions = instructions;
+    }
+
+    // Getters
+    public String getId() { return id; }
+    public String getName() { return name; }
+    public String getImageURL() { return imageURL; }
+    public String getInstructions() { return instructions; }
+
+    // Setters
+    public void setId(String id) { this.id = id; }
+    public void setName(String name) { this.name = name; }
+    public void setImageURL(String imageURL) { this.imageURL = imageURL; }
+    public void setInstructions(String instructions) { this.instructions = instructions; }
+}
+```
+
+**serialVersionUID**: A version control mechanism for Serializable classes. If you change the class structure, old serialized objects might not deserialize correctly. This ID helps Java detect incompatibilities.
+
+---
+
+## Part 8: Testing and Running Your App
+
+You've written the code. Now let's make it run.
+
+### Step 8.1: Building the Project
+
+Before running, ensure your code compiles.
+
+**In Android Studio:**
+1. Click **Build** → **Make Project** (or press Ctrl+F9 / Cmd+F9)
+2. Watch the **Build** tab at the bottom
+3. If errors appear, read them carefully—Android Studio highlights the file and line
+
+**Common build errors:**
+
+**Missing imports**: If you see "Cannot resolve symbol," you forgot an import. Press Alt+Enter on the red text, select "Import class."
+
+**Syntax errors**: Missing semicolons, unmatched braces. The error message shows the line number.
+
+**Gradle sync failed**: Click **File** → **Sync Project with Gradle Files**. This downloads dependencies and regenerates build files.
+
+### Step 8.2: Running on Emulator
+
+**Setting up an emulator:**
+
+1. Click **Tools** → **Device Manager**
+2. Click **Create Device**
+3. Choose a phone (Pixel 5 is good—modern, common screen size)
+4. Select a system image:
+   - **API 33** (Android 13) is recommended
+   - Click **Download** if not already downloaded
+5. Click **Finish**
+
+**Running your app:**
+
+1. Click the green **Run** button (▶) at the top
+2. Select your emulator from the list
+3. Click **OK**
+
+The emulator will boot (takes 30-60 seconds first time), then your app installs and launches.
+
+**Emulator tips:**
+
+- **Take a snapshot**: After booting, save state so next launch is instant
+- **Use hardware acceleration**: Settings → Performance → Graphics: Hardware - GLES 2.0
+- **Rotate**: Ctrl+F11 / Cmd+Left (test landscape mode)
+
+### Step 8.3: Running on Physical Device
+
+Testing on real hardware reveals issues emulators miss (performance, touch responsiveness, network conditions).
+
+**Enable Developer Options on your phone:**
+
+1. **Settings** → **About Phone**
+2. Tap **Build Number** 7 times rapidly
+3. You'll see "You are now a developer!"
+
+**Enable USB Debugging:**
+
+1. **Settings** → **Developer Options**
+2. Toggle **USB Debugging** on
+3. Connect phone to computer via USB
+4. Phone shows "Allow USB debugging?" → Tap **Allow**
+
+**Install your app:**
+
+1. In Android Studio, your phone appears in the device dropdown
+2. Click **Run** (▶)
+3. App installs and launches on your phone
+
+**If phone doesn't appear:**
+- Try a different USB cable (some are charge-only)
+- Ensure USB mode is "File Transfer" not "Charge Only"
+- Install your phone manufacturer's USB drivers (Google, Samsung, etc.)
+
+### Step 8.4: Testing Scenarios
+
+Systematically test all features:
+
+**Test 1: Browse Meals**
+- Launch app
+- See meal cards load from API
+- Verify images display correctly
+- Try search: "chicken" → see chicken meals
+
+**Test 2: View Meal Details**
+- Tap a meal card
+- Detail screen opens with full description
+- Verify image, name, instructions display
+
+**Test 3: Add to Favorites**
+- In detail screen, tap star icon in menu
+- Add rating and comment
+- Verify "Added to Favorites" toast
+
+**Test 4: View Favorites List**
+- Tap ⭐ button on home screen
+- See your favorited meal
+- Verify rating and comment appear
+- Check timestamp shows "Just now"
+
+**Test 5: Edit Favorite**
+- In favorites list, tap edit button
+- Change comment and rating
+- Save → verify changes persist
+
+**Test 6: Delete Favorite (Swipe)**
+- In favorites list, swipe meal card left
+- Meal disappears with animation
+
+**Test 7: Delete Favorite (Button)**
+- Tap delete button
+- Confirm in dialog
+- Meal removed
+
+**Test 8: AI Chat - Basic Question**
+- Tap "AI" button on home screen
+- Type: "How do I cook pasta?"
+- Verify AI responds with brief steps
+
+**Test 9: AI Chat - Favorites Suggestion**
+- Add some favorites first
+- In AI chat, ask: "What should I cook?"
+- Verify AI suggests from YOUR favorites
+
+**Test 10: AI Chat - Moroccan Darija**
+- Type: "شنو نطيب اليوم؟"
+- Verify AI responds in Darija
+
+**Test 11: AI Chat - Conversation Memory**
+- Ask: "How do I make tacos?"
+- AI gives recipe
+- Ask: "How long does it take?"
+- Verify AI knows "it" = tacos
+
+**Test 12: Navigation**
+- Test back button from each screen
+- Test up button in action bar
+- Ensure you return to correct screens
+
+**Test 13: Rotation**
+- Rotate device in each screen
+- Verify no crashes
+- Verify data persists (don't lose typed text)
+
+### Step 8.5: Debugging Common Issues
+
+**Problem: App crashes on launch**
+
+**Solution**: Check Logcat for stack trace:
+1. Open **Logcat** tab at bottom
+2. Filter by your package name: `com.example.ensa_meal`
+3. Find lines with `E/` (error) or `AndroidRuntime: FATAL EXCEPTION`
+4. The stack trace shows which line crashed
+
+Common causes:
+- `NullPointerException`: You called a method on null. Add null checks.
+- `NetworkOnMainThreadException`: You did networking on the main thread. (Volley/OkHttp handle this, so this means you bypassed them.)
+
+**Problem: Images don't load**
+
+**Cause**: Glide requires internet permission.
+
+**Solution**: Verify `<uses-permission android:name="android.permission.INTERNET" />` is in `AndroidManifest.xml`.
+
+**Problem: Database is empty after restart**
+
+**Cause**: You're using `.fallbackToDestructiveMigration()` and changed the database schema.
+
+**Solution**: Uninstall the app, then reinstall. Or remove `.fallbackToDestructiveMigration()` and implement proper migrations (advanced topic).
+
+**Problem: AI chat says "API key not configured"**
+
+**Cause**: `local.properties` doesn't have `GROQ_API_KEY` or Gradle didn't sync.
+
+**Solution**:
+1. Verify `GROQ_API_KEY=your_key_here` is in `local.properties`
+2. Rebuild: **Build** → **Rebuild Project**
+3. Check `BuildConfig.GROQ_API_KEY` is accessible in code
+
+**Problem: AI responds in English when I type Darija**
+
+**Cause**: The model might not recognize your Darija dialect, or the prompt needs refinement.
+
+**Solution**: This is a limitation of the model's training data. Llama 3.3 has good multilingual support but Darija support varies. Try standard Moroccan Arabic instead.
+
+**Problem: Search doesn't work**
+
+**Cause**: TheMealDB API might be down, or you have no internet.
+
+**Solution**:
+1. Test internet: Open browser on emulator/device
+2. Test API directly: Visit `https://www.themealdb.com/api/json/v1/1/search.php?s=chicken` in browser
+3. Check Logcat for Volley errors
+
+---
+
+## Part 9: Preparing for Your Presentation
+
+You've built a sophisticated app. Now, sell it to your professors.
+
+### Step 9.1: Understanding What to Emphasize
+
+Professors evaluate three things:
+
+1. **Technical depth**: Do you understand the code, or did you copy-paste?
+2. **Architectural reasoning**: Can you justify your design choices?
+3. **Problem-solving**: How did you handle challenges?
+
+They care less about "Look, it works!" and more about "Why did you build it this way?"
+
+### Step 9.2: Presentation Structure
+
+**Opening (30 seconds)**
+
+"I'm presenting Ensa Meal, an Android application that combines meal discovery, personalized favorites management, and AI-powered cooking assistance. The app demonstrates three-tier architecture, RESTful API integration, local data persistence, and real-time AI interaction."
+
+**Architecture Overview (2 minutes)**
+
+Draw this diagram on the board or slide:
+
+```
+┌─────────────────────────────────────────────┐
+│           PRESENTATION LAYER                │
+│  MainActivity │ FavoritesActivity │ AIChatActivity
+└─────────────┬───────────────────────────────┘
+              │
+┌─────────────▼───────────────────────────────┐
+│         BUSINESS LOGIC LAYER                │
+│  Adapters │ Click Listeners │ Validation    │
+└─────────────┬───────────────────────────────┘
+              │
+┌─────────────▼───────────────────────────────┐
+│            DATA LAYER                       │
+│  TheMealDB API │ Room Database │ Groq API   │
+└─────────────────────────────────────────────┘
+```
+
+**Explain each layer:**
+
+"The presentation layer handles UI and user interactions. The business logic layer processes data and manages workflows. The data layer interfaces with external APIs and local storage. This separation enables maintainability—I can change the database without touching UI code."
+
+**Key Features Demo (5 minutes)**
+
+**Feature 1: Meal Discovery**
+
+*Show searching for meals*
+
+"I integrated the TheMealDB API using Volley for HTTP requests. Volley handles background threading automatically—network calls don't block the main thread. The adapter uses the ViewHolder pattern for efficient scrolling—views are recycled instead of recreated."
+
+**Feature 2: Favorites Management**
+
+*Show adding, editing, deleting favorites*
+
+"Favorites persist locally using Room, Google's ORM over SQLite. Room provides compile-time SQL verification—invalid queries fail at build time, not runtime. I implemented the DAO pattern to abstract database operations. The Singleton pattern ensures only one database instance exists, preventing resource waste."
+
+*Show swipe-to-delete*
+
+"I implemented swipe-to-delete using ItemTouchHelper. This provides intuitive gestural interaction—users expect swipe gestures in modern apps."
+
+**Feature 3: AI Chat**
+
+*Show AI conversation*
+
+"The AI chat integrates the Groq API using OkHttp. I implemented the COSTAR prompting framework—Context, Objective, Style, Tone, Audience, Response. This structures the AI's behavior. The AI has conversation memory—it remembers previous messages, enabling natural follow-ups."
+
+*Show favorites integration*
+
+"The AI reads the user's favorites from the database and incorporates them into its context. When asked 'What should I cook?', it suggests from the user's saved meals, not random recipes. This is dynamic personalization."
+
+*Show multilingual support*
+
+"The AI supports multiple languages through prompt engineering. I instruct it to mirror the user's language—if they ask in Moroccan Darija, it responds in Darija. This works because modern LLMs are multilingual."
+
+### Step 9.3: Answering Tough Questions
+
+**Q: "Why did you use Volley instead of Retrofit?"**
+
+**A**: "Volley is simpler for basic GET requests with JSON responses. Retrofit is more powerful but has a steeper learning curve. For this app's requirements—straightforward API calls with automatic JSON parsing—Volley's simplicity was appropriate. However, if the app scales and requires more complex API interactions like multipart uploads or RxJava integration, I'd migrate to Retrofit."
+
+**Q: "Your database queries run on the main thread. Why?"**
+
+**A**: "I used `.allowMainThreadQueries()` for development simplicity. In production, I'd use Room's built-in support for LiveData or Kotlin coroutines to observe database changes asynchronously. This keeps the UI responsive. The queries in this app are fast—small datasets, indexed primary keys—so main thread queries don't cause noticeable lag. But it's not scalable."
+
+**Q: "How do you handle API key security?"**
+
+**A**: "I use BuildConfig injection from Gradle. The API key is stored in `local.properties`, which is gitignored. At build time, Gradle reads this file and generates a `BuildConfig` class with the key as a constant. This prevents the key from appearing in version control or being decompiled from the APK. For production apps, I'd use Android's EncryptedSharedPreferences or a secure backend endpoint that proxies API requests."
+
+**Q: "What if the user has no internet?"**
+
+**A**: "Currently, the app requires internet for meal discovery and AI chat. To handle offline scenarios, I'd implement caching. Volley has built-in HTTP caching—responses are stored on disk. For the database, favorites already work offline. To improve this, I'd cache meal search results in Room and display them when offline, with a banner indicating 'Viewing cached data'."
+
+**Q: "How do you ensure the AI doesn't hallucinate meal suggestions not in the user's favorites?"**
+
+**A**: "The prompt explicitly lists the user's favorites and instructs the AI to suggest only from this list. LLMs generally follow explicit constraints. However, hallucination is possible. To prevent this, I could validate AI responses on the client side—check if suggested meals exist in the favorites list, and if not, prompt the AI again or display an error."
+
+**Q: "Why Java instead of Kotlin?"**
+
+**A**: "Java has more learning resources and a longer history in Android development. For someone new to Android, Java's explicit syntax makes concepts clearer. Kotlin is more concise and modern—features like null safety, coroutines, and extension functions are powerful. If continuing this project, I'd migrate to Kotlin for better productivity and Android Jetpack integration."
+
+### Step 9.4: Emphasizing Learning Outcomes
+
+Conclude with reflection:
+
+"Building this app taught me more than syntax—I learned **why** patterns exist. The Singleton pattern prevents resource waste. The ViewHolder pattern optimizes scrolling. The DAO pattern separates concerns. These aren't arbitrary rules; they're solutions to real problems that emerged as apps grew complex. Understanding the problems they solve means I can apply them appropriately, not just blindly follow tutorials."
+
+### Step 9.5: Demo Flow Checklist
+
+**Before presenting:**
+- [ ] App installed on device or emulator
+- [ ] Device connected to internet
+- [ ] Some meals already added to favorites
+- [ ] Groq API key valid and working
+- [ ] Screen brightness at 100% (for visibility)
+- [ ] Airplane mode off
+- [ ] Do Not Disturb on (avoid interruptions)
+
+**Demo sequence:**
+1. Launch app → Show meal cards loading
+2. Search for "pasta" → Show results
+3. Tap a meal → Show detail screen
+4. Add to favorites with comment → Show toast
+5. Navigate to favorites → Show saved meal
+6. Edit favorite → Change rating
+7. Swipe to delete → Show animation
+8. Add another favorite (you need meals for AI)
+9. Open AI chat → Ask "What should I cook?"
+10. Show AI suggests YOUR favorites
+11. Ask follow-up: "How do I make [meal]?"
+12. Show AI remembers context
+13. Ask in Darija: "شنو نطيب؟"
+14. Show AI responds in Darija
+
+**Time management**: Practice the demo. Aim for 5-7 minutes of demo, leaving time for questions.
+
+### Step 9.6: The Most Important Slide
+
+If you make slides, include this one:
+
+**Lessons Learned:**
+
+1. **Architecture matters**: Separation of concerns makes code maintainable
+2. **Patterns solve problems**: Singleton, Observer, ViewHolder, DAO, Builder—each addresses a specific issue
+3. **UX is hard**: Smooth scrolling, loading states, error messages—small details matter
+4. **APIs are unpredictable**: Handle failures gracefully, validate responses, don't trust external services
+5. **Security is not optional**: API keys, user data, permissions—think like an attacker
+
+This shows maturity—you're not just a code typist, you're a thinker.
+
+---
+
+## Conclusion
+
+You've journeyed from zero to a complete Android app. You understand:
+
+- **Android fundamentals**: Activities, layouts, RecyclerView, intents
+- **Networking**: REST APIs, JSON parsing, asynchronous requests
+- **Persistence**: Room database, SQL, DAOs
+- **UI patterns**: Adapters, ViewHolders, click listeners
+- **Advanced features**: AI integration, prompt engineering, multilingual support
+- **Professional practices**: Security, error handling, code organization
+
+But more importantly, you understand **why**. You can defend every line of code. When professors probe, you won't panic—you know the reasoning.
+
+**Final advice**: Projects are never "done." You could add features forever—push notifications, meal planning, grocery lists, social sharing. But done is better than perfect. Ship what works, then iterate.
+
+Your presentation is not about showing a flawless app. It's about demonstrating that you can think architecturally, solve problems systematically, and learn continuously.
+
+Go into that presentation room with confidence. You didn't just build an app. You built understanding.
+
+And that's what they're really grading.
+
+*Now go make them proud.*
+
+— Davinci
+
+---
+
+## Part 10: Building and Generating APK for Submission
+
+You've tested your app on devices and emulators. Now you need to create an installable APK file to submit to your professors or share with others.
+
+### Step 10.1: Understanding Build Types
+
+Android has two main build types:
+
+**Debug Build:**
+- Used during development
+- Includes debugging information
+- Signed with a debug keystore (auto-generated)
+- Larger file size
+- Not optimized
+- What you've been running until now
+
+**Release Build:**
+- For production/distribution
+- Optimized and obfuscated code
+- Signed with your own keystore
+- Smaller file size
+- Better performance
+- What you give to professors/users
+
+**Why the difference?** Debug builds include extra information to help developers troubleshoot (line numbers, variable names, logging). Release builds strip this out, making them faster and harder to reverse-engineer.
+
+### Step 10.2: Creating a Keystore
+
+Before creating a release APK, you need a **keystore**—a file containing cryptographic keys that prove you're the app's creator.
+
+**Important**: Keep this keystore safe. If you lose it, you can never update your app on the Play Store. It's your app's identity.
+
+**Create your keystore via command line:**
+
+Open Terminal (Mac/Linux) or Command Prompt (Windows) and run:
+
+```bash
+keytool -genkey -v -keystore ensa_meal_keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias ensa_meal_key
+```
+
+**What this command does:**
+
+- `keytool`: Java's key management utility
+- `-genkey`: Generate a new key pair
+- `-keystore ensa_meal_keystore.jks`: Output file name
+- `-keyalg RSA`: Use RSA encryption algorithm
+- `-keysize 2048`: 2048-bit key (secure standard)
+- `-validity 10000`: Valid for 10,000 days (~27 years)
+- `-alias ensa_meal_key`: Nickname for this key
+
+**You'll be prompted for:**
+
+1. **Keystore password**: Choose a strong password (e.g., `MySecurePass123!`)
+2. **Key password**: Can be same as keystore password
+3. **Name**: Your name (e.g., "Youssef")
+4. **Organizational Unit**: Your department (e.g., "Computer Science")
+5. **Organization**: Your university (e.g., "ENSA")
+6. **City**: Your city
+7. **State**: Your state/region
+8. **Country code**: Two-letter code (e.g., "MA" for Morocco)
+
+After answering, it creates `ensa_meal_keystore.jks` in your current directory.
+
+**Store this file securely!** Move it to a safe location. Never commit it to git.
+
+### Step 10.3: Configuring Gradle for Release
+
+Open `app/build.gradle.kts` and add signing configuration:
+
+```kotlin
+android {
+    // ... existing config
+
+    signingConfigs {
+        create("release") {
+            storeFile = file("/path/to/your/ensa_meal_keystore.jks")
+            storePassword = "your_keystore_password"
+            keyAlias = "ensa_meal_key"
+            keyPassword = "your_key_password"
+        }
+    }
+
+    buildTypes {
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+}
+```
+
+**Replace:**
+- `/path/to/your/ensa_meal_keystore.jks` with actual path
+- `your_keystore_password` with your actual password
+- `your_key_password` with your actual key password
+
+**Understanding the configuration:**
+
+**isMinifyEnabled = true**: Enables code shrinking. ProGuard/R8 removes unused code, making the APK smaller.
+
+**isShrinkResources = true**: Removes unused resources (images, layouts you imported but never used).
+
+**proguardFiles**: ProGuard rules that tell R8 what to obfuscate and what to keep.
+
+**signingConfig**: Uses your keystore to sign the APK.
+
+**Security Warning**: Hardcoding passwords in `build.gradle.kts` is bad practice for real projects. For your school project, it's acceptable. In production, you'd use environment variables or Android Studio's signing configuration UI.
+
+### Step 10.4: ProGuard Rules
+
+ProGuard obfuscates your code—renames classes and methods to make reverse-engineering harder. But it can break things if it renames classes that reflection or libraries depend on.
+
+Open (or create) `app/proguard-rules.pro` and add:
+
+```proguard
+# Keep Room database classes
+-keep class * extends androidx.room.RoomDatabase
+-keep @androidx.room.Entity class *
+-dontwarn androidx.room.**
+
+# Keep Gson/JSON serialization classes
+-keepclassmembers class ** {
+    @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Keep Plat model (used with Serializable)
+-keep class com.example.ensa_meal.Plat { *; }
+-keep class com.example.ensa_meal.database.** { *; }
+
+# Keep OkHttp
+-dontwarn okhttp3.**
+-dontwarn okio.**
+-keepnames class okhttp3.internal.publicsuffix.PublicSuffixDatabase
+
+# Keep Glide
+-keep public class * implements com.bumptech.glide.module.GlideModule
+-keep class * extends com.bumptech.glide.module.AppGlideModule {
+ <init>(...);
+}
+-keep public enum com.bumptech.glide.load.ImageHeaderParser$** {
+  **[] $VALUES;
+  public *;
+}
+
+# Keep line numbers for debugging stack traces
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
+```
+
+**What these rules do:**
+
+**-keep**: Don't obfuscate or remove these classes
+**-dontwarn**: Ignore warnings about missing classes (they're optional dependencies)
+**-keepattributes**: Keep certain attributes (like line numbers for crash reports)
+
+**When professors ask about ProGuard**: "ProGuard is a code shrinker and obfuscator. It removes unused code, making the APK smaller and faster. It also renames classes and methods, making reverse-engineering harder. However, it can break reflection or serialization, so I added keep rules for Room database entities, serializable classes, and third-party libraries like Glide and OkHttp."
+
+### Step 10.5: Generating the Release APK
+
+**In Android Studio:**
+
+1. Click **Build** → **Generate Signed Bundle / APK**
+2. Select **APK** (not Bundle—unless submitting to Play Store)
+3. Click **Next**
+4. **Key store path**: Browse to your `.jks` file
+5. **Key store password**: Enter your keystore password
+6. **Key alias**: `ensa_meal_key`
+7. **Key password**: Enter your key password
+8. Click **Next**
+9. **Destination folder**: Choose where to save (default is `app/release/`)
+10. **Build Variants**: Select `release`
+11. **Signature Versions**: Check both V1 and V2
+12. Click **Finish**
+
+Android Studio builds your APK. When done, you'll see a notification with a link to the APK location.
+
+**Via Command Line** (alternative):
+
+```bash
+./gradlew assembleRelease
+```
+
+The APK will be at `app/build/outputs/apk/release/app-release.apk`.
+
+### Step 10.6: Testing the Release APK
+
+Before submitting, test the APK thoroughly. Release builds behave differently than debug builds.
+
+**Install on device:**
+
+```bash
+adb install app/build/outputs/apk/release/app-release.apk
+```
+
+Or drag the APK to an emulator.
+
+**What to test:**
+
+1. **All features work**: Go through your 13 test scenarios from Part 8
+2. **No crashes**: Release builds have different optimizations
+3. **API keys work**: Ensure BuildConfig still injects correctly
+4. **Database persists**: Close and reopen app, verify favorites remain
+5. **Performance**: Release should be faster and smoother than debug
+
+**Common Release Build Issues:**
+
+**Problem: App crashes on startup**
+
+**Cause**: ProGuard removed a class you need.
+
+**Solution**: Check Logcat for `ClassNotFoundException` or `MethodNotFoundException`. Add a `-keep` rule for that class in `proguard-rules.pro`.
+
+**Problem: API calls fail**
+
+**Cause**: ProGuard obfuscated JSON model classes.
+
+**Solution**: Add `-keep class com.example.ensa_meal.Plat { *; }` to ProGuard rules.
+
+**Problem: Database queries fail**
+
+**Cause**: Room entities were obfuscated.
+
+**Solution**: Already handled if you added the Room keep rules from Step 10.4.
+
+### Step 10.7: Reducing APK Size
+
+Professors appreciate efficiency. A smaller APK is better.
+
+**Check current size:**
+
+The APK in `app/build/outputs/apk/release/` shows its size. Typical range: 5-15 MB.
+
+**Optimization techniques:**
+
+**1. Enable code shrinking** (already done in Step 10.3)
+
+**2. Remove unused resources:**
+
+In `app/build.gradle.kts`:
+
+```kotlin
+buildTypes {
+    release {
+        isShrinkResources = true  // Already added
+    }
+}
+```
+
+**3. Use WebP images instead of PNG:**
+
+Android Studio can convert images: Right-click image → Convert to WebP. WebP is 25-35% smaller than PNG with similar quality.
+
+**4. Exclude unused language resources:**
+
+If your app doesn't need every language, exclude them:
+
+```kotlin
+android {
+    defaultConfig {
+        resourceConfigurations += listOf("en", "ar", "fr")  // Only include English, Arabic, French
+    }
+}
+```
+
+**5. Enable APK splitting** (advanced):
+
+Generate separate APKs for different screen densities or architectures. This is overkill for a school project, but good to know.
+
+### Step 10.8: Preparing for Submission
+
+**Create a submission package:**
+
+1. **The APK**: `app-release.apk`
+2. **Installation instructions**: A simple text file
+
+Create `INSTALL_INSTRUCTIONS.txt`:
+
+```
+# Ensa Meal - Installation Instructions
+
+## Requirements:
+- Android device with API 24+ (Android 7.0 or newer)
+- Internet connection (for meal API and AI features)
+
+## Installation Steps:
+
+### On Android Device:
+1. Transfer app-release.apk to your device
+2. Open the APK file
+3. If prompted, enable "Install from Unknown Sources" in Settings
+4. Tap "Install"
+5. Open Ensa Meal from your app drawer
+
+### On Emulator:
+1. Drag and drop app-release.apk onto the emulator window
+2. App installs automatically
+3. Open from app drawer
+
+## Using the App:
+1. Browse meals on the home screen
+2. Tap any meal to view details
+3. Add meals to favorites (star icon in detail screen)
+4. View favorites by tapping ⭐ button
+5. Chat with AI by tapping "AI" button
+   - Note: AI requires Groq API key (configured during development)
+
+## Features:
+- Meal browsing with search
+- Favorites management (add, edit, delete)
+- Swipe-to-delete in favorites
+- AI cooking assistant
+- Multilingual support (English, Darija, French, Arabic)
+- Personalized meal suggestions from your favorites
+
+## Author:
+Youssef - [Your University] - [Date]
+```
+
+**Create a ZIP file:**
+
+- `app-release.apk`
+- `INSTALL_INSTRUCTIONS.txt`
+- (Optional) `README.md` with project overview
+
+Name it: `Ensa_Meal_Youssef_[Date].zip`
+
+### Step 10.9: Understanding APK Signing (For Interview Questions)
+
+**Q: "What is APK signing and why is it necessary?"**
+
+**A**: "APK signing is a cryptographic process that proves the app's authenticity. When you sign an APK with your keystore, it creates a digital signature. Android verifies this signature during installation. If someone modifies your APK after you sign it, the signature becomes invalid and Android refuses to install it. This prevents tampering. Additionally, apps signed with different keys are treated as different apps—you can't update an app with an APK signed by a different key. This ensures only the original developer can publish updates."
+
+**Q: "What's the difference between V1 and V2 signing?"**
+
+**A**: "V1 (JAR signing) is the original scheme, signing each file individually. V2 (APK Signature Scheme) signs the entire APK as a single block, which is faster to verify and more secure—it protects the entire APK structure, not just individual files. V2 was introduced in Android 7.0. For maximum compatibility, we enable both—V2 for modern devices, V1 as fallback for older devices."
+
+### Step 10.10: Final Checklist Before Submission
+
+- [ ] Release APK builds successfully
+- [ ] APK installs on physical device
+- [ ] APK installs on emulator
+- [ ] All features work in release build
+- [ ] No crashes during testing
+- [ ] API key configured correctly
+- [ ] App performance is smooth
+- [ ] APK size is reasonable (<20 MB)
+- [ ] Installation instructions included
+- [ ] Files packaged in ZIP
+- [ ] File named clearly (name_project_date)
+
+---
+
+## Part 11: Future Enhancements and Next Steps
+
+You've built a complete, functional app. But software is never "done." Here's how to take it further.
+
+### Step 11.1: Architectural Improvements
+
+**Current Architecture**: You used a simple three-tier architecture. It works, but there are more sophisticated patterns.
+
+#### Migrate to MVVM (Model-View-ViewModel)
+
+**Problem with current approach**: Activities contain business logic, making them hard to test. UI and logic are tightly coupled.
+
+**MVVM Solution**: Separate concerns:
+- **Model**: Data (Plat, FavoriteEntity)
+- **View**: UI (Activities, XML)
+- **ViewModel**: Business logic (between Model and View)
+
+**Benefits**:
+- Testable: Test ViewModels without launching Activities
+- Lifecycle-aware: ViewModels survive configuration changes (rotation)
+- Clean: Activities only handle UI updates
+
+**Example refactor**:
+
+Instead of MainActivity directly calling `searchMeals()`, you'd have:
+
+```java
+public class MainViewModel extends ViewModel {
+    private MutableLiveData<List<Plat>> mealsLiveData = new MutableLiveData<>();
+
+    public LiveData<List<Plat>> getMeals() {
+        return mealsLiveData;
+    }
+
+    public void searchMeals(String query) {
+        // Network call logic here
+        // Update mealsLiveData when done
+    }
+}
+```
+
+MainActivity observes `mealsLiveData`:
+
+```java
+viewModel.getMeals().observe(this, meals -> {
+    adapter.updateData(meals);
 });
 ```
 
+**When to use**: Medium to large apps. For your project's scope, current architecture is appropriate. But mentioning MVVM in your presentation shows awareness.
+
+#### Clean Architecture
+
+**Even more separation**: Domain layer (business rules), Data layer (repositories), Presentation layer.
+
+**Overkill for this project**, but useful for enterprise apps.
+
+### Step 11.2: Performance Optimizations
+
+#### 1. Database Operations on Background Thread
+
+Currently: `.allowMainThreadQueries()` blocks the UI.
+
+**Solution**: Use LiveData or Kotlin Coroutines:
+
+```java
+// Room automatically runs queries on background thread when returning LiveData
+@Query("SELECT * FROM favorites")
+LiveData<List<FavoriteEntity>> getAllFavorites();
+```
+
+In Activity:
+
+```java
+favoriteDao.getAllFavorites().observe(this, favorites -> {
+    adapter.updateData(favorites);
+});
+```
+
+**Benefit**: UI never freezes waiting for database.
+
+#### 2. Pagination for Meal List
+
+Currently: Load all meals at once.
+
+**Problem**: If API returns 100+ meals, loading takes time and uses memory.
+
+**Solution**: Paging library—load 20 meals at a time, load more as user scrolls.
+
+#### 3. Image Caching Strategy
+
+Glide already caches images, but you can tune it:
+
+```java
+Glide.with(context)
+    .load(url)
+    .diskCacheStrategy(DiskCacheStrategy.ALL)  // Cache original and resized
+    .thumbnail(0.1f)  // Show low-res thumbnail while loading
+    .into(imageView);
+```
+
+**Benefit**: Faster loading, less bandwidth usage.
+
+#### 4. LazyColumn vs RecyclerView
+
+If migrating to Jetpack Compose (modern Android UI), replace RecyclerView with LazyColumn—it's more efficient and easier to use.
+
+### Step 11.3: Feature Enhancements
+
+#### 1. Offline Mode
+
+**Goal**: Browse cached meals without internet.
+
+**Implementation**:
+- Store API responses in Room database
+- When offline, query database instead of API
+- Show banner: "Viewing cached data"
+
+```java
+if (isNetworkAvailable()) {
+    fetchFromAPI();
+} else {
+    loadFromCache();
+    showOfflineBanner();
+}
+```
+
+#### 2. Meal Planning
+
+**Feature**: Users plan meals for the week.
+
+**Implementation**:
+- New table: `meal_plan` with columns `day`, `meal_id`, `meal_type` (breakfast/lunch/dinner)
+- Calendar view showing planned meals
+- Drag-and-drop from favorites to calendar
+
+**Use case**: "What should I cook Wednesday?" → AI suggests based on meal plan.
+
+#### 3. Shopping List
+
+**Feature**: Generate shopping list from favorite meals' ingredients.
+
+**Implementation**:
+- Parse recipe instructions for ingredients (or use detailed API endpoint)
+- Store in `shopping_list` table
+- Checkbox list UI
+- Share list via SMS/WhatsApp
+
+#### 4. Social Sharing
+
+**Feature**: Share favorite meals with friends.
+
+**Implementation**:
+- Deep links: `ensaMeal://meal/52772` opens meal detail
+- Share button creates link + image
+- Firebase Dynamic Links for robust cross-platform sharing
+
+#### 5. Nutrition Information
+
+**Feature**: Show calories, protein, carbs for meals.
+
+**Implementation**:
+- TheMealDB doesn't have nutrition data
+- Integrate Nutritionix API or Edamam API
+- Display nutrition facts in detail screen
+
+#### 6. Voice Input for AI
+
+**Feature**: Speak questions instead of typing.
+
+**Implementation**:
+- Android's SpeechRecognizer
+- Convert speech to text
+- Send to AI as usual
+
+```java
+SpeechRecognizer speechRecognizer = SpeechRecognizer.createSpeechRecognizer(this);
+Intent intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+speechRecognizer.startListening(intent);
+```
+
+**Benefit**: Hands-free cooking assistance.
+
+#### 7. Push Notifications
+
+**Feature**: "Time to cook dinner! Try Beef Tacos tonight."
+
+**Implementation**:
+- Firebase Cloud Messaging
+- Schedule notifications based on meal times
+- AI generates personalized suggestions
+
+### Step 11.4: UI/UX Improvements
+
+#### 1. Dark Mode
+
+**Implementation**:
+- Create `res/values-night/colors.xml`
+- Define dark theme colors
+- Use `?attr/colorPrimary` instead of hardcoded colors
+
+**Benefit**: Easy on eyes, saves battery on OLED screens.
+
+#### 2. Animations
+
+**Add polish**:
+- Shared element transitions between screens
+- FAB (Floating Action Button) for adding favorites
+- Lottie animations for loading states
+
+```java
+// Shared element transition
+ActivityOptions options = ActivityOptions.makeSceneTransitionAnimation(
+    this,
+    imageView,
+    "mealImage"
+);
+startActivity(intent, options.toBundle());
+```
+
+#### 3. Material You / Material 3
+
+**Upgrade**: Use Material 3 components (dynamic color, rounded everything).
+
+**Implementation**: Update to Material 3 library, redesign with new components.
+
+#### 4. Swipe Gestures Everywhere
+
+- Swipe between tabs
+- Pull-to-refresh meal list
+- Swipe meal cards in main screen to quick-add to favorites
+
+### Step 11.5: Backend Integration
+
+Currently: Direct API calls from app.
+
+**Limitations**:
+- API keys exposed (even with BuildConfig, they're in the APK)
+- Can't add custom features (like user accounts)
+- No cross-device sync
+
+**Solution**: Build your own backend.
+
+#### Option 1: Firebase
+
+**Pros**: No code, easy setup
+**Features**:
+- Authentication (user accounts)
+- Firestore (cloud database)
+- Cloud Functions (serverless code)
+- Cloud Storage (store images)
+
+**Use case**: Users log in, favorites sync across devices.
+
+#### Option 2: Custom Backend (Node.js + Express)
+
+**Pros**: Full control
+**Implementation**:
+- Node.js server with Express
+- PostgreSQL or MongoDB database
+- RESTful API
+- JWT authentication
+
+**API endpoints**:
+- `POST /auth/register` - Create account
+- `POST /auth/login` - Login
+- `GET /favorites` - Get user's favorites
+- `POST /favorites` - Add favorite
+- `GET /ai/chat` - Proxy AI requests (hide API key)
+
+**Benefit**: API keys stay on server, users have accounts, data syncs.
+
+### Step 11.6: Testing Improvements
+
+#### Unit Tests
+
+Test individual components in isolation:
+
+```java
+@Test
+public void testPlatGetters() {
+    Plat plat = new Plat("1", "Pizza", "url", "Delicious");
+    assertEquals("Pizza", plat.getName());
+    assertEquals("1", plat.getId());
+}
+```
+
+#### Integration Tests
+
+Test Room database queries:
+
+```java
+@Test
+public void testAddFavorite() {
+    FavoriteEntity fav = new FavoriteEntity("1", "Pizza", "url", "desc", "note", 5);
+    favoriteDao.addToFavorites(fav);
+
+    List<FavoriteEntity> favorites = favoriteDao.getAllFavorites();
+    assertEquals(1, favorites.size());
+}
+```
+
+#### UI Tests (Espresso)
+
+Test UI interactions:
+
+```java
+@Test
+public void testAddToFavorites() {
+    onView(withId(R.id.recycler_view))
+        .perform(RecyclerViewActions.actionOnItemAtPosition(0, click()));
+
+    onView(withId(R.id.action_add_favorite))
+        .perform(click());
+
+    onView(withText("Added to Favorites"))
+        .check(matches(isDisplayed()));
+}
+```
+
+**Why test?** Catch bugs early, confidence when refactoring, professional practice.
+
+### Step 11.7: Security Hardening
+
+#### 1. Network Security Configuration
+
+Force HTTPS, prevent man-in-the-middle attacks:
+
+Create `res/xml/network_security_config.xml`:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>
+```
+
+In `AndroidManifest.xml`:
+
+```xml
+<application
+    android:networkSecurityConfig="@xml/network_security_config">
+```
+
+**Benefit**: App only communicates over HTTPS.
+
+#### 2. Certificate Pinning
+
+**Problem**: Attacker could use fake certificates.
+
+**Solution**: Pin specific certificates:
+
+```java
+OkHttpClient client = new OkHttpClient.Builder()
+    .certificatePinner(new CertificatePinner.Builder()
+        .add("api.groq.com", "sha256/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+        .build())
+    .build();
+```
+
+Get the hash from the certificate.
+
+**Benefit**: App only trusts specific certificates, blocking MITM attacks.
+
+#### 3. SQL Injection Prevention
+
+**Your app is safe** because Room uses parameterized queries. But if you wrote raw SQL:
+
+```java
+// UNSAFE
+database.execSQL("SELECT * FROM favorites WHERE id = " + userId);
+
+// SAFE
+database.query("SELECT * FROM favorites WHERE id = ?", new String[]{userId});
+```
+
+### Step 11.8: Deployment to Play Store (Advanced)
+
+If you want to publish:
+
+**Requirements**:
+- Google Play Developer account ($25 one-time fee)
+- Privacy policy URL
+- App icons (multiple sizes)
+- Screenshots (phone, tablet, TV)
+- Store listing (description, graphics)
+
+**Steps**:
+1. Create developer account
+2. Generate **App Bundle** (not APK): `./gradlew bundleRelease`
+3. Upload to Play Console
+4. Fill out store listing
+5. Submit for review (takes 1-3 days)
+
+**Benefit**: Anyone can install from Play Store. Adds credibility.
+
+### Step 11.9: Learning Resources
+
+**To deepen Android knowledge:**
+
+**Official**:
+- **Android Developer Guides**: developer.android.com/guide
+- **Android Codelabs**: codelabs.developers.google.com (hands-on tutorials)
+- **Android Architecture Samples**: github.com/android/architecture-samples
+
+**Courses**:
+- **Google's Android Basics in Kotlin**: Free, comprehensive
+- **Udacity Android Nanodegree**: Paid, in-depth
+- **Philipp Lackner YouTube**: Modern Android (Jetpack Compose, MVVM)
+
+**Books**:
+- *Android Programming: The Big Nerd Ranch Guide* - Beginner-friendly
+- *Effective Java* by Joshua Bloch - Java best practices
+
+**Communities**:
+- r/androiddev on Reddit
+- Android Developers Discord
+- Stack Overflow
+
+**Next Steps**:
+1. **Learn Kotlin**: Modern Android uses Kotlin. More concise, safer than Java.
+2. **Jetpack Compose**: Declarative UI framework (like React/SwiftUI). Future of Android UI.
+3. **Coroutines & Flow**: Better async programming than callbacks.
+4. **Dagger/Hilt**: Dependency injection for large apps.
+5. **GraphQL**: Modern API alternative to REST.
+
+### Step 11.10: Contributing to Open Source
+
+**Build credibility:**
+
+Find Android projects on GitHub, fix bugs, add features, submit pull requests.
+
+**Good starter projects**:
+- Beginner-friendly projects labeled "good first issue"
+- Apps you use daily (check if they're open source)
+- Libraries like Glide, OkHttp, Room (improve documentation)
+
+**Benefits**:
+- Learn from experienced developers
+- Build portfolio
+- Network with community
+- Looks great on resume
+
+### Step 11.11: Final Thoughts
+
+You've completed a journey from zero to a fully functional Android app. You understand not just **what** to code, but **why** each piece exists.
+
+**The real skill you've gained isn't Android development—it's the ability to learn any technology systematically**. The patterns you learned (MVC, MVVM, Singleton, Observer) apply everywhere. The problem-solving approach (understand requirements, architect a solution, implement iteratively, test thoroughly) is universal.
+
+**What separates good developers from great ones:**
+
+- **Good developers** write code that works.
+- **Great developers** write code that's maintainable, testable, and scalable.
+
+You're on your way to being great.
+
+**Remember**:
+- Every expert was once a beginner
+- Every large project started small
+- Every bug you fix teaches you something
+- Every line of code makes you better
+
+Your professors will see more than an app. They'll see someone who can **think**, **design**, and **build**.
+
+**One last piece of advice**: After your presentation, don't abandon this project. Add one feature from Part 11. Polish it. Make it yours. Then build something new. The best way to learn is to keep building.
+
+**The path forward:**
+1. Present confidently
+2. Iterate on feedback
+3. Learn Kotlin
+4. Explore Jetpack Compose
+5. Build your next app
+6. Contribute to open source
+7. Never stop learning
+
+**You've got this.**
+
+When you walk into that presentation room, remember: you built something from nothing. You took an idea and made it real. You solved problems, debugged crashes, integrated APIs, and created an experience.
+
+That's not just development. That's creation.
+
+And you're a creator now.
+
+*Go forth and build amazing things.*
+
+— Davinci
+
 ---
 
-## Common Professor Questions & Answers
+## Appendix: Quick Reference
 
-### Q: How does the app show meal details after clicking?
-
-**Answer:**
-1. User taps meal in MainActivity RecyclerView
-2. AdapterMeals detects click via `onItemClick()` interface callback
-3. MainActivity receives callback at line 212
-4. Creates Intent with Instructions activity as destination
-5. Puts Plat object in Bundle (Plat implements Serializable)
-6. Calls `startActivity(intent)`
-7. Android ActivityManager handles transition:
-   - Pauses MainActivity
-   - Creates Instructions activity
-   - Calls Instructions.onCreate()
-8. Instructions retrieves Plat from Intent extras
-9. Displays meal data in UI components
-
-**Key files:**
-- Click detection: `AdapterMeals.java:70`
-- Navigation trigger: `MainActivity.java:212`
-- Data reception: `Instructions.java:35`
-
-### Q: Which part handles the API communication?
-
-**Answer:**
-Volley library handles all API communication.
-
-**Process:**
-1. Create JsonObjectRequest with URL
-2. Add success and error listeners (callbacks)
-3. Add request to RequestQueue
-4. Volley opens HTTP connection on background thread
-5. Receives response
-6. Parses JSON automatically
-7. Calls success callback on main thread with JSONObject
-8. MainActivity parses JSONObject and updates UI
-
-**File**: `MainActivity.java:147-171`
-
-**Why Volley?**
-- Automatic thread management
-- Built-in caching
-- Request prioritization
-- Simple API
-
-### Q: How is the database managed?
-
-**Answer:**
-Room library manages the database.
-
-**Architecture:**
-- **AppDatabase**: Singleton that creates and maintains database connection
-- **Entities**: Java classes representing tables (@Entity)
-- **DAOs**: Interfaces defining database operations (@Dao)
-
-**How it works:**
-1. Room uses annotations to understand structure
-2. At compile time, Room generates SQL and implementation code
-3. At runtime, calling DAO methods executes generated SQL
-4. Room handles object-to-row conversion automatically
-
-**Example:**
-```java
-@Insert
-void addToFavorites(FavoriteEntity entity);
+### Project Structure
 ```
-Room generates:
-```sql
-INSERT INTO favorites (mealId, mealName, ...) VALUES (?, ?, ...)
+Ensa_Meal/
+├── app/src/main/
+│   ├── java/com/example/ensa_meal/
+│   │   ├── MainActivity.java
+│   │   ├── FavoritesActivity.java
+│   │   ├── AIChatActivity.java
+│   │   ├── Instructions.java
+│   │   ├── Plat.java
+│   │   ├── AdapterMeals.java
+│   │   ├── FavoritesAdapter.java
+│   │   └── database/
+│   │       ├── AppDatabase.java
+│   │       ├── FavoriteEntity.java
+│   │       └── FavoriteDao.java
+│   ├── res/
+│   │   ├── layout/
+│   │   │   ├── activity_main.xml
+│   │   │   ├── activity_favorites.xml
+│   │   │   ├── activity_ai_chat.xml
+│   │   │   ├── activity_instructions.xml
+│   │   │   ├── model_plat.xml
+│   │   │   ├── item_favorite.xml
+│   │   │   └── dialog_edit_favorite.xml
+│   │   └── values/
+│   │       ├── strings.xml
+│   │       └── colors.xml
+│   └── AndroidManifest.xml
+├── build.gradle.kts
+└── local.properties (gitignored)
 ```
 
-**Files:**
-- Database: `database/AppDatabase.java`
-- Entity: `database/FavoriteEntity.java`
-- DAO: `database/FavoriteDao.java`
+### Key Dependencies
+```kotlin
+// Networking
+implementation("com.android.volley:volley:1.2.1")
+implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
-### Q: Why use RecyclerView instead of ScrollView?
+// Database
+implementation("androidx.room:room-runtime:2.6.1")
+annotationProcessor("androidx.room:room-compiler:2.6.1")
 
-**Answer:**
-RecyclerView is optimized for long lists:
+// Image Loading
+implementation("com.github.bumptech.glide:glide:4.16.0")
 
-**ViewHolder Pattern:**
-- Only creates views for visible items
-- Reuses views as user scrolls
-- Calls `onBindViewHolder()` to update recycled views
-
-**Example:**
-List of 1000 items:
-- ScrollView: Creates 1000 views (slow, high memory)
-- RecyclerView: Creates ~10 views (fast, low memory)
-
-**Other benefits:**
-- Built-in item animations
-- Swipe and drag support
-- Different layout managers (grid, linear, staggered)
-
-### Q: How does the rating system work?
-
-**Answer:**
-RatingBar is an Android widget that displays stars.
-
-**Properties:**
-- `numStars`: How many stars (default 5)
-- `rating`: Current value (0-5)
-- `stepSize`: Increment (0.5 for half stars, 1.0 for full stars)
-
-**Storage:**
-Rating stored as float in database:
-```java
-private float userRating;
+// UI
+implementation("androidx.appcompat:appcompat:1.6.1")
+implementation("com.google.android.material:material:1.9.0")
 ```
 
-**Display:**
-```java
-ratingBar.setRating(favorite.getUserRating());
-```
+### Design Patterns Used
+- **Singleton**: AppDatabase
+- **ViewHolder**: RecyclerView optimization
+- **Observer**: Click listeners, LiveData
+- **DAO**: Database access abstraction
+- **Builder**: AlertDialog, OkHttp Request
+- **Adapter**: RecyclerView adapters
+- **MVC**: Model (Plat, FavoriteEntity), View (XML), Controller (Activities)
 
-**Retrieve:**
-```java
-float rating = ratingBar.getRating();
-```
+### API Endpoints
+- **TheMealDB**: `https://www.themealdb.com/api/json/v1/1/search.php?s={query}`
+- **Groq**: `https://api.groq.com/openai/v1/chat/completions`
 
-**Files:**
-- Input: `dialog_edit_favorite.xml`
-- Display: `FavoritesAdapter.java:93`
-- Storage: `FavoriteEntity.java:26`
+### Common Commands
+```bash
+# Build debug APK
+./gradlew assembleDebug
 
-### Q: What happens when user swipes to delete?
+# Build release APK
+./gradlew assembleRelease
 
-**Answer:**
-ItemTouchHelper detects swipe gestures.
+# Install on device
+adb install app/build/outputs/apk/release/app-release.apk
 
-**Process:**
-1. User swipes item left or right
-2. ItemTouchHelper detects swipe direction
-3. Calls `onSwiped(viewHolder, direction)`
-4. Gets position from viewHolder
-5. Shows confirmation dialog
-6. If confirmed, deletes from database
-7. Removes from adapter's list
-8. Calls `notifyItemRemoved()` to animate removal
+# View logs
+adb logcat | grep "com.example.ensa_meal"
 
-**File**: `FavoritesActivity.java:78-105`
-
-**Why confirmation dialog?**
-Prevents accidental deletions - better UX.
-
-### Q: How does the AI integration work?
-
-**Answer:**
-Uses Groq API with OkHttp for HTTP requests. Implements conversation memory to maintain context.
-
-**Flow:**
-1. User enters question
-2. Store user message in `conversationHistory` list
-3. Build JSON request with system prompt + ALL previous messages + new question
-4. Send POST request to Groq API with auth header
-5. Groq processes with Llama 3.3 70B model
-6. Returns JSON response with AI answer
-7. Parse response and extract answer
-8. Store AI response in `conversationHistory`
-9. Display in chat interface
-
-**Conversation Memory:**
-```java
-private List<JSONObject> conversationHistory = new ArrayList<>();
-```
-
-Each message (user and AI) is stored as JSONObject with role and content. The entire history is sent with each request, allowing the AI to reference previous exchanges.
-
-**Example:**
-- User: "How do I make pasta?"
-- AI: "Boil water, add salt, cook pasta 8-10 minutes"
-- User: "What sauce goes with it?" ← AI remembers we're talking about pasta
-
-**Why asynchronous?**
-Network requests must run on background thread to prevent UI freezing. OkHttp's `enqueue()` handles this automatically.
-
-**File**: `AIChatActivity.java`
-
-### Q: What is COSTAR and why is it used?
-
-**Answer:**
-COSTAR is a prompting framework that structures AI system prompts for better responses.
-
-**Framework Breakdown:**
-- **C - Context**: AI knows it's in Ensa Meal app, background info
-- **O - Objective**: What AI should achieve (help with cooking, remember context)
-- **S - Style**: How to write (conversational, simple, step-by-step)
-- **T - Tone**: Emotional quality (friendly, helpful, patient)
-- **A - Audience**: Who it's for (home cooks, all skill levels)
-- **R - Response**: Output structure (concise, bullet points, reference history)
-
-**Why COSTAR?**
-- Consistent response quality
-- Clear AI behavior expectations
-- Better context retention
-- More focused and relevant answers
-- Professional approach to prompt engineering
-
-**Parameters:**
-- `temperature: 0.3` - Low creativity, more focused and consistent
-- `top_p: 0.9` - Nucleus sampling for quality responses
-- `max_tokens: 500` - Reasonable response length
-
-**File**: `AIChatActivity.java:178`
-
-### Q: What is the purpose of ProgressBar?
-
-**Answer:**
-Provides visual feedback during loading.
-
-**States:**
-- `VISIBLE`: Shows spinning animation
-- `GONE`: Completely hidden (doesn't take space)
-
-**Usage:**
-```java
-progressBar.setVisibility(View.VISIBLE);  // Show
-progressBar.setVisibility(View.GONE);     // Hide
-```
-
-**When shown:**
-- API requests
-- Database operations
-- Image loading
-
-**Why important?**
-Users need feedback that app is working, not frozen.
-
----
-
-## Project File Structure
-
-```
-app/src/main/
-├── java/com/example/ensa_meal/
-│   ├── MainActivity.java (Home screen with search and meal list)
-│   ├── FavoritesActivity.java (Manage favorites)
-│   ├── Instructions.java (Meal details)
-│   ├── AIChatActivity.java (AI assistant)
-│   ├── Plat.java (Meal data model)
-│   ├── AdapterMeals.java (RecyclerView adapter for meals)
-│   ├── FavoritesAdapter.java (RecyclerView adapter for favorites)
-│   └── database/
-│       ├── AppDatabase.java (Database instance)
-│       ├── MealEntity.java (Meals table)
-│       ├── FavoriteEntity.java (Favorites table)
-│       ├── MealDao.java (Meals database operations)
-│       └── FavoriteDao.java (Favorites database operations)
-├── res/
-│   ├── layout/
-│   │   ├── activity_main.xml (Main screen layout)
-│   │   ├── activity_favorites.xml (Favorites screen layout)
-│   │   ├── activity_instructions.xml (Details screen layout)
-│   │   ├── activity_ai_chat.xml (AI chat layout)
-│   │   ├── model_plat.xml (Meal item layout)
-│   │   ├── dialog_add_meal.xml (Add favorite dialog)
-│   │   └── dialog_edit_favorite.xml (Edit favorite dialog)
-│   ├── values/
-│   │   ├── colors.xml (App colors)
-│   │   ├── strings.xml (Text strings)
-│   │   └── themes.xml (App theme)
-│   └── menu/
-│       ├── main_menu.xml (Main screen menu)
-│       └── favorites_menu.xml (Favorites screen menu)
-└── AndroidManifest.xml (App configuration)
+# Generate keystore
+keytool -genkey -v -keystore ensa_meal_keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias ensa_meal_key
 ```
 
 ---
 
-## Summary
+**End of Guide**
 
-Ensa Meal demonstrates:
-- **API Integration**: Fetching data from TheMealDB
-- **Database Management**: Room for local storage
-- **CRUD Operations**: Create, Read, Update, Delete favorites
-- **Modern UI**: RecyclerView, Material Design
-- **AI Integration**: Groq API for cooking assistance
-- **User Experience**: Search, ratings, comments, time tracking
-- **Android Concepts**: Activities, Intents, Adapters, Fragments
-- **Network Programming**: Volley and OkHttp
-- **Asynchronous Operations**: Callbacks and background threads
-- **Design Patterns**: Singleton, ViewHolder, Observer
+*This guide was crafted with 35 years of experience and an IQ of 264, but written with the heart of a teacher who remembers being a student.*
 
-This project showcases practical application of Android development concepts taught in university courses, integrated with modern AI technology.
+*May your code compile, your apps inspire, and your presentations impress.*
+
+*— Davinci*
