@@ -13,3 +13,8 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# API Keys - NEVER commit these
+local.properties
+*.keystore
+*.jks

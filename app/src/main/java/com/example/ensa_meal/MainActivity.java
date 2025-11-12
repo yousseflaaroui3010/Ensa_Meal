@@ -44,6 +44,7 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
     private FavoriteDao favoriteDao;
     private SearchView searchView;
     private Button favoritesButton;
+    private Button aiButton;
     private Set<String> favoriteMealIds; // To store IDs of favorite meals
 
     @Override
@@ -79,6 +80,7 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
         progressBar = findViewById(R.id.progressBar);
         searchView = findViewById(R.id.search_view);
         favoritesButton = findViewById(R.id.favorites_button);
+        aiButton = findViewById(R.id.ai_button);
     }
 
     /**
@@ -99,6 +101,11 @@ public class MainActivity extends AppCompatActivity implements AdapterMeals.OnIt
     private void setupListeners() {
         favoritesButton.setOnClickListener(v -> {
             Intent intent = new Intent(MainActivity.this, FavoritesActivity.class);
+            startActivity(intent);
+        });
+
+        aiButton.setOnClickListener(v -> {
+            Intent intent = new Intent(MainActivity.this, AIChatActivity.class);
             startActivity(intent);
         });
 
