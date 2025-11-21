@@ -1,10 +1,10 @@
 package com.example.ensa_meal;
 
 import android.os.Bundle;
+import android.text.Html;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,9 +15,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -38,13 +41,13 @@ public class AIChatActivity extends AppCompatActivity {
     private EditText questionInput;
     private Button sendButton;
     private TextView chatTextView;
-    private ProgressBar progressBar;
     private ScrollView scrollView;
     private OkHttpClient client;
     private StringBuilder chatHistory;
     private List<JSONObject> conversationHistory;
     private FavoriteDao favoriteDao;
     private List<FavoriteEntity> userFavorites;
+    private StringBuilder currentStreamingResponse;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,9 +61,14 @@ public class AIChatActivity extends AppCompatActivity {
         initializeViews();
         setupListeners();
 
-        client = new OkHttpClient();
+        // Configure OkHttp with longer timeout for streaming
+        client = new OkHttpClient.Builder()
+                .readTimeout(60, TimeUnit.SECONDS)
+                .build();
+
         chatHistory = new StringBuilder();
         conversationHistory = new ArrayList<>();
+        currentStreamingResponse = new StringBuilder();
 
         AppDatabase database = AppDatabase.getInstance(this);
         favoriteDao = database.favoriteDao();
@@ -71,7 +79,6 @@ public class AIChatActivity extends AppCompatActivity {
         questionInput = findViewById(R.id.question_input);
         sendButton = findViewById(R.id.send_button);
         chatTextView = findViewById(R.id.chat_text_view);
-        progressBar = findViewById(R.id.progress_bar);
         scrollView = findViewById(R.id.scroll_view);
     }
 
@@ -89,85 +96,126 @@ public class AIChatActivity extends AppCompatActivity {
     private void sendQuestionToAI(String question) {
         if (BuildConfig.GROQ_API_KEY == null || BuildConfig.GROQ_API_KEY.isEmpty()) {
             Toast.makeText(this, "Please add your Groq API key in local.properties", Toast.LENGTH_LONG).show();
-            appendToChat("Error: API key not configured. Add GROQ_API_KEY to local.properties\n\n");
+            appendToChat("Error: API key not configured. Add GROQ_API_KEY to local.properties<br><br>");
             return;
         }
 
-        showLoading(true);
         sendButton.setEnabled(false);
 
-        appendToChat("You: " + question + "\n\n");
+        appendToChat("<b>You:</b> " + question + "<br><br>");
         storeUserMessage(question);
         questionInput.setText("");
+
+        // Start Chef response on new line
+        appendToChat("<b>Chef:</b><br>");
+        currentStreamingResponse = new StringBuilder();
 
         try {
             JSONObject requestBody = buildRequestBody(question);
 
             Request request = new Request.Builder()
-                .url(GROQ_API_URL)
-                .addHeader("Authorization", "Bearer " + BuildConfig.GROQ_API_KEY)
-                .addHeader("Content-Type", "application/json")
-                .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
-                .build();
+                    .url(GROQ_API_URL)
+                    .addHeader("Authorization", "Bearer " + BuildConfig.GROQ_API_KEY)
+                    .addHeader("Content-Type", "application/json")
+                    .post(RequestBody.create(requestBody.toString(), MediaType.parse("application/json")))
+                    .build();
 
             client.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     runOnUiThread(() -> {
-                        showLoading(false);
                         sendButton.setEnabled(true);
-                        Toast.makeText(AIChatActivity.this, "Network error: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                        appendToChat("Error: Could not connect to AI service\n\n");
+                        appendToChat("Could not connect. Check your internet.<br><br>");
                     });
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
-                    String responseBody = response.body().string();
-
-                    runOnUiThread(() -> {
-                        showLoading(false);
-                        sendButton.setEnabled(true);
-
-                        if (response.isSuccessful()) {
-                            try {
-                                JSONObject jsonResponse = new JSONObject(responseBody);
-                                String answer = extractAnswer(jsonResponse);
-                                appendToChat("AI: " + answer + "\n\n");
-                                storeAssistantResponse(answer);
-                            } catch (JSONException e) {
-                                Toast.makeText(AIChatActivity.this, "Error parsing response", Toast.LENGTH_SHORT).show();
-                                appendToChat("Error: Invalid response from AI\n\n");
-                            }
-                        } else {
-                            String errorMsg = "API Error: " + response.code();
+                    if (!response.isSuccessful()) {
+                        runOnUiThread(() -> {
+                            sendButton.setEnabled(true);
                             if (response.code() == 401) {
-                                errorMsg = "Invalid API key. Check local.properties";
-                                appendToChat("Error: Invalid or expired API key.\n\nCheck GROQ_API_KEY in local.properties file\n\n");
+                                appendToChat("Invalid API key. Check local.properties<br><br>");
                             } else {
-                                appendToChat("Error: AI service returned error code " + response.code() + "\n\n");
+                                appendToChat("Something went wrong. Try again.<br><br>");
                             }
-                            Toast.makeText(AIChatActivity.this, errorMsg, Toast.LENGTH_LONG).show();
+                        });
+                        return;
+                    }
+
+                    // Handle streaming response
+                    try (BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(response.body().byteStream()))) {
+
+                        String line;
+                        while ((line = reader.readLine()) != null) {
+                            if (line.startsWith("data: ")) {
+                                String data = line.substring(6).trim();
+
+                                if (data.equals("[DONE]")) {
+                                    break;
+                                }
+
+                                try {
+                                    JSONObject chunk = new JSONObject(data);
+                                    JSONArray choices = chunk.getJSONArray("choices");
+
+                                    if (choices.length() > 0) {
+                                        JSONObject delta = choices.getJSONObject(0).optJSONObject("delta");
+
+                                        if (delta != null && delta.has("content")) {
+                                            String content = delta.getString("content");
+                                            currentStreamingResponse.append(content);
+
+                                            // Update UI with streamed content
+                                            runOnUiThread(() -> updateStreamingText(content));
+                                        }
+                                    }
+                                } catch (JSONException e) {
+                                    // Skip malformed chunks
+                                }
+                            }
                         }
-                    });
+
+                        // Finalize the response
+                        runOnUiThread(() -> {
+                            sendButton.setEnabled(true);
+                            appendToChat("<br><br>");
+                            storeAssistantResponse(currentStreamingResponse.toString());
+                        });
+
+                    } catch (Exception e) {
+                        runOnUiThread(() -> {
+                            sendButton.setEnabled(true);
+                            appendToChat("Error reading response<br><br>");
+                        });
+                    }
                 }
             });
         } catch (JSONException e) {
-            showLoading(false);
             sendButton.setEnabled(true);
-            Toast.makeText(this, "Error creating request", Toast.LENGTH_SHORT).show();
+            appendToChat("Error creating request<br><br>");
         }
+    }
+
+    private void updateStreamingText(String newContent) {
+        // Convert \n to <br> for proper HTML rendering
+        String htmlContent = newContent.replace("\n", "<br>");
+        chatHistory.append(htmlContent);
+        chatTextView.setText(Html.fromHtml(chatHistory.toString(), Html.FROM_HTML_MODE_COMPACT));
+        scrollView.post(() -> scrollView.fullScroll(View.FOCUS_DOWN));
     }
 
     private JSONObject buildRequestBody(String question) throws JSONException {
         JSONObject requestBody = new JSONObject();
         requestBody.put("model", "llama-3.3-70b-versatile");
+        requestBody.put("stream", true); // Enable streaming
 
         JSONArray messages = new JSONArray();
 
         JSONObject systemMessage = new JSONObject();
         systemMessage.put("role", "system");
-        systemMessage.put("content", buildCostarPrompt());
+        systemMessage.put("content", buildSimplePrompt());
         messages.put(systemMessage);
 
         for (JSONObject msg : conversationHistory) {
@@ -175,86 +223,65 @@ public class AIChatActivity extends AppCompatActivity {
         }
 
         requestBody.put("messages", messages);
-        requestBody.put("temperature", 0.3);
-        requestBody.put("top_p", 0.9);
-        requestBody.put("max_tokens", 500);
+        requestBody.put("temperature", 0.4);
+        requestBody.put("max_tokens", 600);
 
         return requestBody;
     }
 
-    private String buildCostarPrompt() {
-        String favoritesContext = buildFavoritesContext();
+    private String buildSimplePrompt() {
+        String favorites = buildFavoritesContext();
 
+        // COSTAR Framework Prompt (Optimized)
         return "# CONTEXT\n" +
-                "You are a cooking assistant in Ensa Meal app. Users ask cooking questions. You have conversation history.\n\n" +
-
-                "# USER'S FAVORITE MEALS\n" +
-                favoritesContext + "\n" +
-                "You can suggest what to cook from these favorites when asked.\n\n" +
+                "You are Chef, a cooking assistant in Ensa_Meal app. You help users decide meals and provide recipes.\n" +
+                "USER'S FAVORITES: " + favorites + "\n\n" +
 
                 "# OBJECTIVE\n" +
-                "Answer cooking questions briefly and simply. Remember previous messages for follow-up questions. " +
-                "Help users decide what to cook from their favorites.\n\n" +
+                "Give decisive meal recommendations and clear recipes. Max 1-2 questions before deciding. Use favorites when relevant. Match user's language.\n\n" +
 
-                "# STYLE\n" +
-                "Simple words. Easy to understand. Like texting a friend. No fancy language.\n\n" +
-
-                "# TONE\n" +
-                "Friendly and helpful. Quick and direct.\n\n" +
+                "# STYLE & TONE\n" +
+                "Friendly, confident friend. Say 'Make this' not 'you could try'. No jargon. Be decisive.\n\n" +
 
                 "# AUDIENCE\n" +
-                "Anyone who cooks. Keep it simple.\n\n" +
+                "Home cooks (any skill). Languages: English/French/Arabic/Darija (use Latin letters for Darija). Assume basic ingredients available.\n\n" +
 
-                "# CRITICAL LANGUAGE RULE\n" +
-                "ALWAYS respond in the SAME LANGUAGE the user writes in:\n" +
-                "- English question → English answer\n" +
-                "- Moroccan Darija question → Moroccan Darija answer\n" +
-                "- French question → French answer\n" +
-                "- Arabic question → Arabic answer\n" +
-                "Match the user's language EXACTLY. This is mandatory.\n\n" +
+                "# RESPONSE FORMAT\n\n" +
 
-                "# RESPONSE FORMAT\n" +
-                "Keep answers VERY brief:\n\n" +
+                "FORMATTING:\n" +
+                "- Line breaks between ideas (never one paragraph)\n" +
+                "- Numbered lists for steps\n" +
+                "- Bullets for ingredients\n" +
+                "- Keep lines short\n\n" +
 
-                "For GREETINGS (Hi, Hello, Salam, etc):\n" +
-                "Just say: 'Hi! How can I help you?'\n" +
-                "Nothing more.\n\n" +
+                "PATTERNS:\n\n" +
 
-                "For FAVORITES QUESTIONS (What should I cook? What to make? etc):\n" +
-                "Suggest 2-3 meals from their favorites list.\n" +
-                "Example: 'Try making [meal 1] or [meal 2].'\n" +
-                "Keep it short.\n\n" +
+                "For 'what to cook?':\n" +
+                "- Have favorites? Suggest ONE\n" +
+                "- No favorites: ask 'Something in mind, or should I suggest?'\n" +
+                "- If suggest: 'What sounds good: light (salad), hearty (tajine), quick (pasta), comforting (soup)?'\n" +
+                "- Max 1-2 questions, then DECIDE\n\n" +
 
-                "For INGREDIENTS questions:\n" +
-                "1. ingredient one\n" +
-                "2. ingredient two\n" +
-                "3. ingredient three\n" +
-                "That's it. No extra text.\n\n" +
+                "For suggestions: meal name + why it fits + time + 'Want recipe?'\n\n" +
 
-                "For RECIPE/STEPS questions:\n" +
-                "1. brief step\n" +
-                "2. brief step\n" +
-                "3. brief step\n" +
-                "Max 5-6 steps. Short sentences.\n\n" +
+                "For recipes:\n" +
+                "Ingredients: (bullets)\n" +
+                "Steps: (numbered)\n" +
+                "Total time:\n\n" +
 
-                "For TIME/TEMPERATURE questions:\n" +
-                "Direct answer in 1 sentence. Example: 'Cook for 20 minutes at 180°C.'\n\n" +
-
-                "For TIPS/SUBSTITUTIONS:\n" +
-                "1-2 sentences max. Direct and simple.\n\n" +
-
-                "For FOLLOW-UP questions:\n" +
-                "Reference previous topic briefly, then answer in 1-2 sentences.\n\n" +
-
-                "RULES:\n" +
-                "- When user asks what to cook, suggest from their favorites\n" +
-                "- No long explanations\n" +
-                "- No professional cooking terms unless necessary\n" +
-                "- No 'hope this helps' or extra fluff\n" +
-                "- Get straight to the point\n" +
-                "- Use numbers for lists\n" +
-                "- Maximum 4-5 sentences for any answer\n" +
-                "- Respond in user's language (English, Darija, French, Arabic, etc)";
+                "# EXAMPLE\n\n" +
+                "User: What should I cook?\n" +
+                "Chef: Something in mind, or want me to suggest?\n\n" +
+                "User: Suggest\n" +
+                "Chef: What sounds good:\n" +
+                "- Light (salad)\n" +
+                "- Hearty (tajine)\n" +
+                "- Quick (pasta)\n" +
+                "- Comforting (soup)\n\n" +
+                "User: Quick\n" +
+                "Chef: Make Garlic Shrimp Pasta.\n\n" +
+                "15 minutes, tastes restaurant-quality.\n\n" +
+                "Want the recipe?";
     }
 
     private String extractAnswer(JSONObject response) throws JSONException {
@@ -269,12 +296,8 @@ public class AIChatActivity extends AppCompatActivity {
 
     private void appendToChat(String text) {
         chatHistory.append(text);
-        chatTextView.setText(chatHistory.toString());
+        chatTextView.setText(Html.fromHtml(chatHistory.toString(), Html.FROM_HTML_MODE_COMPACT));
         scrollView.post(() -> scrollView.fullScroll(View.FOCUS_DOWN));
-    }
-
-    private void showLoading(boolean show) {
-        progressBar.setVisibility(show ? View.VISIBLE : View.GONE);
     }
 
     private void storeUserMessage(String message) {
@@ -305,15 +328,15 @@ public class AIChatActivity extends AppCompatActivity {
 
     private String buildFavoritesContext() {
         if (userFavorites == null || userFavorites.isEmpty()) {
-            return "User has no favorite meals saved yet.";
+            return "None saved yet";
         }
 
-        StringBuilder context = new StringBuilder("User's favorite meals:\n");
+        StringBuilder context = new StringBuilder();
         for (int i = 0; i < userFavorites.size(); i++) {
             FavoriteEntity fav = userFavorites.get(i);
-            context.append((i + 1)).append(". ").append(fav.getMealName());
+            context.append("- ").append(fav.getMealName());
             if (fav.getUserComment() != null && !fav.getUserComment().isEmpty()) {
-                context.append(" (Note: ").append(fav.getUserComment()).append(")");
+                context.append(" (").append(fav.getUserComment()).append(")");
             }
             context.append("\n");
         }

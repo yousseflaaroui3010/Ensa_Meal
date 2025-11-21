@@ -1,9 +1,102 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.Ensa_Meal" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+    <!-- Base application theme -->
+    <style name="Base.Theme.Ensa_Meal" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Primary brand color -->
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorPrimaryContainer">@color/primary_light</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorOnPrimaryContainer">@color/text_primary</item>
+
+        <!-- Secondary brand color -->
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSecondaryContainer">@color/secondary_light</item>
+        <item name="colorOnSecondary">@color/on_secondary</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+
+        <!-- Tertiary brand color -->
+        <item name="colorTertiary">@color/accent</item>
+        <item name="colorOnTertiary">@color/text_primary</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/error</item>
+        <item name="colorOnError">@color/white</item>
+
+        <!-- Status bar -->
+        <item name="android:statusBarColor">@color/status_bar</item>
+        <item name="android:navigationBarColor">@color/primary_dark</item>
+
+        <!-- Text appearance -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+
+        <!-- Window background -->
+        <item name="android:windowBackground">@color/background</item>
+
+        <!-- Ripple color -->
+        <item name="android:colorControlHighlight">@color/ripple</item>
     </style>
 
     <style name="Theme.Ensa_Meal" parent="Base.Theme.Ensa_Meal" />
+
+    <!-- ActionBar Theme (if using ActionBar) -->
+    <style name="Theme.Ensa_Meal.ActionBar" parent="Theme.Material3.Light">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="android:colorBackground">@color/background</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:statusBarColor">@color/status_bar</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="actionBarStyle">@style/Widget.Ensa_Meal.ActionBar</item>
+    </style>
+
+    <!-- Custom ActionBar Style -->
+    <style name="Widget.Ensa_Meal.ActionBar" parent="Widget.Material3.ActionBar.Solid">
+        <item name="background">@color/primary</item>
+        <item name="titleTextStyle">@style/TextAppearance.Ensa_Meal.ActionBar.Title</item>
+    </style>
+
+    <style name="TextAppearance.Ensa_Meal.ActionBar.Title" parent="TextAppearance.Material3.ActionBar.Title">
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <!-- Button Styles -->
+    <style name="Widget.Ensa_Meal.Button" parent="Widget.Material3.Button">
+        <item name="backgroundTint">@color/primary</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="rippleColor">@color/ripple</item>
+    </style>
+
+    <style name="Widget.Ensa_Meal.Button.Secondary" parent="Widget.Material3.Button.TonalButton">
+        <item name="backgroundTint">@color/secondary</item>
+        <item name="android:textColor">@color/white</item>
+    </style>
+
+    <!-- Card Style -->
+    <style name="Widget.Ensa_Meal.CardView" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/card_background</item>
+        <item name="strokeColor">@color/card_stroke</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="cardElevation">2dp</item>
+        <item name="cardCornerRadius">12dp</item>
+    </style>
+
+    <!-- EditText Style -->
+    <style name="Widget.Ensa_Meal.EditText" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/primary</item>
+        <item name="hintTextColor">@color/primary</item>
+        <item name="android:textColor">@color/text_primary</item>
+    </style>
 </resources>
